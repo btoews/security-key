@@ -12,8 +12,7 @@
 		F739A2B81D63AE78001F025C /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = F739A2B61D63AE78001F025C /* Main.storyboard */; };
 		F739A2BA1D63AE78001F025C /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F739A2B91D63AE78001F025C /* Assets.xcassets */; };
 		F739A2BD1D63AE78001F025C /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = F739A2BB1D63AE78001F025C /* LaunchScreen.storyboard */; };
-		F739A2CB1D63AF7F001F025C /* ActionViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F739A2CA1D63AF7F001F025C /* ActionViewController.swift */; };
-		F739A2CE1D63AF7F001F025C /* MainInterface.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = F739A2CC1D63AF7F001F025C /* MainInterface.storyboard */; };
+		F739A2CB1D63AF7F001F025C /* ActionRequestHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = F739A2CA1D63AF7F001F025C /* ActionRequestHandler.swift */; };
 		F739A2D21D63AF7F001F025C /* Extension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = F739A2C81D63AF7F001F025C /* Extension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		F739A2D81D63B3E5001F025C /* Action.js in Resources */ = {isa = PBXBuildFile; fileRef = F739A2D71D63B3E5001F025C /* Action.js */; };
 		F739A31D1D64BA48001F025C /* KeyInterface.m in Sources */ = {isa = PBXBuildFile; fileRef = F739A31C1D64BA48001F025C /* KeyInterface.m */; };
@@ -52,8 +51,7 @@
 		F739A2BC1D63AE78001F025C /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		F739A2BE1D63AE78001F025C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		F739A2C81D63AF7F001F025C /* Extension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = Extension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
-		F739A2CA1D63AF7F001F025C /* ActionViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionViewController.swift; sourceTree = "<group>"; };
-		F739A2CD1D63AF7F001F025C /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/MainInterface.storyboard; sourceTree = "<group>"; };
+		F739A2CA1D63AF7F001F025C /* ActionRequestHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionRequestHandler.swift; sourceTree = "<group>"; };
 		F739A2CF1D63AF7F001F025C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		F739A2D71D63B3E5001F025C /* Action.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; path = Action.js; sourceTree = "<group>"; };
 		F739A3151D64B861001F025C /* Extension-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Extension-Bridging-Header.h"; sourceTree = "<group>"; };
@@ -115,8 +113,7 @@
 			children = (
 				F739A31B1D64BA48001F025C /* KeyInterface.h */,
 				F739A31C1D64BA48001F025C /* KeyInterface.m */,
-				F739A2CA1D63AF7F001F025C /* ActionViewController.swift */,
-				F739A2CC1D63AF7F001F025C /* MainInterface.storyboard */,
+				F739A2CA1D63AF7F001F025C /* ActionRequestHandler.swift */,
 				F739A2CF1D63AF7F001F025C /* Info.plist */,
 				F739A2D71D63B3E5001F025C /* Action.js */,
 				F739A3151D64B861001F025C /* Extension-Bridging-Header.h */,
@@ -228,7 +225,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				F739A2D81D63B3E5001F025C /* Action.js in Resources */,
-				F739A2CE1D63AF7F001F025C /* MainInterface.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -248,7 +244,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F739A2CB1D63AF7F001F025C /* ActionViewController.swift in Sources */,
+				F739A2CB1D63AF7F001F025C /* ActionRequestHandler.swift in Sources */,
 				F739A31D1D64BA48001F025C /* KeyInterface.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -278,14 +274,6 @@
 				F739A2BC1D63AE78001F025C /* Base */,
 			);
 			name = LaunchScreen.storyboard;
-			sourceTree = "<group>";
-		};
-		F739A2CC1D63AF7F001F025C /* MainInterface.storyboard */ = {
-			isa = PBXVariantGroup;
-			children = (
-				F739A2CD1D63AF7F001F025C /* Base */,
-			);
-			name = MainInterface.storyboard;
 			sourceTree = "<group>";
 		};
 /* End PBXVariantGroup section */

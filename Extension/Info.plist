@@ -34,10 +34,10 @@
 			<key>NSExtensionJavaScriptPreprocessingFile</key>
 			<string>Action</string>
 		</dict>
-		<key>NSExtensionMainStoryboard</key>
-		<string>MainInterface</string>
+		<key>NSExtensionPrincipalClass</key>
+		<string>$(PRODUCT_MODULE_NAME).ActionRequestHandler</string>
 		<key>NSExtensionPointIdentifier</key>
-		<string>com.apple.ui-services</string>
+		<string>com.apple.services</string>
 	</dict>
 </dict>
 </plist>

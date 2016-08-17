@@ -1,5 +1,5 @@
 //
-//  ActionViewController.swift
+//  ActionRequestHandler.swift
 //  Extension
 //
 //  Created by Benjamin P Toews on 8/16/16.
@@ -9,7 +9,9 @@
 import UIKit
 import MobileCoreServices
 
-class ActionViewController: UIViewController {
+class ActionRequestHandler: NSObject, NSExtensionRequestHandling {
+    
+    var extensionContext: NSExtensionContext?
     
     func signMessage(keyName:String, _ message:String, completion: (NSData!, NSError!) -> Void) {
         let messageData:NSData = message.dataUsingEncoding(NSUTF8StringEncoding)!
@@ -27,10 +29,8 @@ class ActionViewController: UIViewController {
         KeyInterface.generateSignatureForData(messageData, withKeyName: keyName, withCompletion: completion)
     }
 
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        
-        navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .Done, target: self, action: #selector(done))
+    func beginRequestWithExtensionContext(context: NSExtensionContext) {
+        self.extensionContext = context
         
         guard
             let inputItem = extensionContext!.inputItems.first as? NSExtensionItem,
@@ -52,17 +52,12 @@ class ActionViewController: UIViewController {
             }
             
             self.signMessage(origin, message) { (sig, err) in
-                print(sig)
+                if err == nil {
+                    print(sig)   
+                }
             }
         }
+        
+        self.extensionContext!.completeRequestReturningItems([], completionHandler: nil)
     }
-
-    override func didReceiveMemoryWarning() {
-        super.didReceiveMemoryWarning()
-    }
-
-    @IBAction func done() {
-        self.extensionContext!.completeRequestReturningItems(self.extensionContext!.inputItems, completionHandler: nil)
-    }
-
 }
