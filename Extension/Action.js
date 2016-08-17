@@ -3,7 +3,7 @@ var Action = function() {};
 Action.prototype = {
     
 run: function(parameters) {
-    parameters.completionFunction({"URL": document.URL, "title": document.title });
+    parameters.completionFunction({"origin": window.location.origin, "message": "hello, world!" });
 },
     
 finalize: function(parameters) {
