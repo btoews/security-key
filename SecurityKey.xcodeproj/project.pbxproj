@@ -14,8 +14,8 @@
 		F739A2BD1D63AE78001F025C /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = F739A2BB1D63AE78001F025C /* LaunchScreen.storyboard */; };
 		F739A2CB1D63AF7F001F025C /* ActionRequestHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = F739A2CA1D63AF7F001F025C /* ActionRequestHandler.swift */; };
 		F739A2D21D63AF7F001F025C /* Extension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = F739A2C81D63AF7F001F025C /* Extension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		F739A2D81D63B3E5001F025C /* Action.js in Resources */ = {isa = PBXBuildFile; fileRef = F739A2D71D63B3E5001F025C /* Action.js */; };
 		F739A31D1D64BA48001F025C /* KeyInterface.m in Sources */ = {isa = PBXBuildFile; fileRef = F739A31C1D64BA48001F025C /* KeyInterface.m */; };
+		F786B2581D66145F009EF3D6 /* Action.js in Resources */ = {isa = PBXBuildFile; fileRef = F786B2571D66145F009EF3D6 /* Action.js */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -53,10 +53,10 @@
 		F739A2C81D63AF7F001F025C /* Extension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = Extension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		F739A2CA1D63AF7F001F025C /* ActionRequestHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionRequestHandler.swift; sourceTree = "<group>"; };
 		F739A2CF1D63AF7F001F025C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		F739A2D71D63B3E5001F025C /* Action.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; path = Action.js; sourceTree = "<group>"; };
 		F739A3151D64B861001F025C /* Extension-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Extension-Bridging-Header.h"; sourceTree = "<group>"; };
 		F739A31B1D64BA48001F025C /* KeyInterface.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = KeyInterface.h; path = ../../SecureEnclaveCrypto/KeyInterface/KeyInterface.h; sourceTree = "<group>"; };
 		F739A31C1D64BA48001F025C /* KeyInterface.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = KeyInterface.m; path = ../../SecureEnclaveCrypto/KeyInterface/KeyInterface.m; sourceTree = "<group>"; };
+		F786B2571D66145F009EF3D6 /* Action.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; path = Action.js; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -111,11 +111,11 @@
 		F739A2C91D63AF7F001F025C /* Extension */ = {
 			isa = PBXGroup;
 			children = (
+				F786B2571D66145F009EF3D6 /* Action.js */,
 				F739A31B1D64BA48001F025C /* KeyInterface.h */,
 				F739A31C1D64BA48001F025C /* KeyInterface.m */,
 				F739A2CA1D63AF7F001F025C /* ActionRequestHandler.swift */,
 				F739A2CF1D63AF7F001F025C /* Info.plist */,
-				F739A2D71D63B3E5001F025C /* Action.js */,
 				F739A3151D64B861001F025C /* Extension-Bridging-Header.h */,
 			);
 			path = Extension;
@@ -147,6 +147,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = F739A2D31D63AF7F001F025C /* Build configuration list for PBXNativeTarget "Extension" */;
 			buildPhases = (
+				F786B2501D6602FC009EF3D6 /* ShellScript */,
 				F739A2C41D63AF7F001F025C /* Sources */,
 				F739A2C51D63AF7F001F025C /* Frameworks */,
 				F739A2C61D63AF7F001F025C /* Resources */,
@@ -224,11 +225,29 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F739A2D81D63B3E5001F025C /* Action.js in Resources */,
+				F786B2581D66145F009EF3D6 /* Action.js in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		F786B2501D6602FC009EF3D6 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/Extension/JavaScript/cryptotoken",
+				"$(SRCROOT)/Extension/JavaScript/main.js",
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "if ! which brew &> /dev/null; then\n  echo \"You must have homebrew installed to build this project\"\n  exit 1\nfi\n\nbrew bundle\nnpm install\n\n# List main.js after the cryptotoken code so vars get defined before we use them.\n# find ${SCRIPT_INPUT_FILE_0} -type f | xargs -J % ./node_modules/.bin/uglifyjs % $SCRIPT_INPUT_FILE_1 -b -c hoist_vars > Extension/Action.js\n\n./node_modules/.bin/uglifyjs $SCRIPT_INPUT_FILE_1 -b > Extension/Action.js";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		F739A2AB1D63AE78001F025C /* Sources */ = {
@@ -442,6 +461,7 @@
 				F739A2C31D63AE78001F025C /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		F739A2D31D63AF7F001F025C /* Build configuration list for PBXNativeTarget "Extension" */ = {
 			isa = XCConfigurationList;
@@ -450,6 +470,7 @@
 				F739A2D51D63AF7F001F025C /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};

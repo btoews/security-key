@@ -1,0 +1,7 @@
+{
+  "name": "security-key",
+  "version": "0.0.1",
+  "dependencies": [
+    "uglify-js"
+  ]
+}

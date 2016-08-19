@@ -27,7 +27,7 @@ class ActionRequestHandler: NSObject, NSExtensionRequestHandling {
                 return
             }
         }
-        
+        print(KeyInterface.publicKeyBits(keyName))
         KeyInterface.generateSignatureForData(messageData, withKeyName: keyName, withCompletion: completion)
     }
 
@@ -43,11 +43,10 @@ class ActionRequestHandler: NSObject, NSExtensionRequestHandling {
                     for itemProvider: AnyObject in attachments {
                         if itemProvider.hasItemConformingToTypeIdentifier(kUTTypePropertyList as String) {
                             itemProvider.loadItemForTypeIdentifier(kUTTypePropertyList as String, options: nil, completionHandler: { (item, error) in
-                                let dictionary = item as! NSDictionary
-                                let javaScriptValues = dictionary[NSExtensionJavaScriptPreprocessingResultsKey] as! NSDictionary
-
-                                NSOperationQueue.mainQueue().addOperationWithBlock {
-                                    self.itemLoadCompletedWithPreprocessingResults(javaScriptValues)
+                                if let dictionary = item as? NSDictionary, let javaScriptValues = dictionary[NSExtensionJavaScriptPreprocessingResultsKey] as? NSDictionary {
+                                    NSOperationQueue.mainQueue().addOperationWithBlock {
+                                        self.itemLoadCompletedWithPreprocessingResults(javaScriptValues)
+                                    }
                                 }
                             })
                             found = true
