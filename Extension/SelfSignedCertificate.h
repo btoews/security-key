@@ -20,7 +20,6 @@
 @property X509* x509;
 
 - (id)init;
-- (void)print;
-- (NSData*)toDer;
+- (NSString*)toDer;
 
 @end

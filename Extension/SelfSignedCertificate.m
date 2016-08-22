@@ -79,21 +79,15 @@
     return 1;
 }
 
-- (void)print
+- (NSString*)toDer
 {
-    PEM_write_X509(stdout, self.x509);
-}
-
-- (NSData*)toDer
-{
-    size_t len = i2d_X509(self.x509, NULL);
+    unsigned char* buf = NULL;
+//    size_t len = i2d_X509(self.x509, &buf);
+//    NSData* data = [NSData dataWithBytes:buf length:len];
+//    return data;
     
-    unsigned char** start, end = *(unsigned char*)malloc(len);
-    
-    i2d_X509(self.x509, &&end);
-    
-    NSData* data = [NSData dataWithBytes:start length:len];
-    return data;
+    i2d_X509(self.x509, &buf);
+    return [NSString stringWithCString:(const char*)buf encoding:NSASCIIStringEncoding];
 }
 
 - (void)dealloc

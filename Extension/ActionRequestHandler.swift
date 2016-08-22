@@ -13,33 +13,25 @@ class ActionRequestHandler: NSObject, NSExtensionRequestHandling {
     
     var extensionContext: NSExtensionContext?
     
-    func signMessage(keyName:String, _ message:String, completion: (NSData!, NSError!) -> Void) {
-        let messageData:NSData = message.dataUsingEncoding(NSUTF8StringEncoding)!
-        
-        if KeyInterface.publicKeyExists(keyName) {
+    func generateOrGetKeyWithName(name:String) -> NSData? {
+        if KeyInterface.publicKeyExists(name) {
             print("key pair exists")
         } else {
-            if KeyInterface.generateTouchIDKeyPair(keyName) {
+            if KeyInterface.generateTouchIDKeyPair(name) {
                 print("generated key pair")
             } else {
-                completion(nil, NSError(domain: "com.github.SecurityKey.Extension", code: 1, userInfo: [:]))
                 print("error generating key pair")
-                return
+                return nil
             }
         }
-        print(KeyInterface.publicKeyBits(keyName))
-        KeyInterface.generateSignatureForData(messageData, withKeyName: keyName, withCompletion: completion)
+        
+        return KeyInterface.publicKeyBits(name)
     }
 
     func beginRequestWithExtensionContext(context: NSExtensionContext) {
         self.extensionContext = context
         
         var found = false
-        
-        let ssc = SelfSignedCertificate()
-        let der = ssc.toDer()
-        print(der)
-
         
         outer:
             for item: AnyObject in context.inputItems {
@@ -68,23 +60,45 @@ class ActionRequestHandler: NSObject, NSExtensionRequestHandling {
     
     func itemLoadCompletedWithPreprocessingResults(javaScriptValues: NSDictionary) {
         guard
-            let origin = javaScriptValues["origin"] as? String,
-            let message = javaScriptValues["message"] as? String
-            else {
-                return
+            let appId = javaScriptValues["appId"] as? String,
+            var toSign = javaScriptValues["toSign"] as? String
+        else {
+            print("bad data from JavaScript")
+            return
         }
         
-        self.signMessage(origin, message) { (sig, err) in
-            if err == nil {
-                let strSig = String(data: sig, encoding: NSASCIIStringEncoding)!
-                let key = KeyInterface.publicKeyBits(origin)
-                let strKey = String(data: key, encoding: NSASCIIStringEncoding)!
-
-                self.doneWithResults(["signature": strSig, "key": strKey])
-            } else {
-                self.doneWithResults(["error": "failed to sign message"])
-            }
+        guard
+            let key = generateOrGetKeyWithName(appId),
+            let strKey = String(data: key, encoding: NSASCIIStringEncoding)
+        else {
+            print("error generating or finding key")
+            return
         }
+        
+        guard
+            let ssc = SelfSignedCertificate()
+        else {
+            print("error generating certificate")
+            return
+        }
+        
+        
+        toSign += strKey
+//        sig = ssc.Sign(toSign)
+        
+        self.doneWithResults(["signature": "some signature", "publicKey": strKey, "certificate": ssc.toDer()])
+        
+        
+//        KeyInterface.generateSignatureForData(toSign, withKeyName: appId) { (sig, err) in
+//            if err == nil {
+//                let strSig = String(data: sig, encoding: NSASCIIStringEncoding)!
+//                let strKey = String(data: key, encoding: NSASCIIStringEncoding)!
+//                
+//                self.doneWithResults(["signature": strSig, "publicKey": strKey])
+//            } else {
+//                self.doneWithResults(["error": "failed to sign message"])
+//            }
+//        }
     }
     
     func doneWithResults(resultsForJavaScriptFinalizeArg: [NSObject: AnyObject]?) {
