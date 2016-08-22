@@ -82,12 +82,39 @@
 - (NSString*)toDer
 {
     unsigned char* buf = NULL;
-//    size_t len = i2d_X509(self.x509, &buf);
-//    NSData* data = [NSData dataWithBytes:buf length:len];
-//    return data;
+    unsigned int len = i2d_X509(self.x509, &buf);
+//    return [NSString stringWithCString:(const char*)buf encoding:NSASCIIStringEncoding];
+    return [[NSString alloc] initWithBytes: buf length: len encoding:NSASCIIStringEncoding];
+}
+
+- (NSString*)signData:(NSData*)msg
+{
+    EVP_MD_CTX ctx;
+    const unsigned char* cmsg = (const unsigned char*)[msg bytes];
+    unsigned char* sig = (unsigned char*)malloc(EVP_PKEY_size(self.pkey));
+    unsigned int len;
     
-    i2d_X509(self.x509, &buf);
-    return [NSString stringWithCString:(const char*)buf encoding:NSASCIIStringEncoding];
+    for(unsigned int i = 0, len = (unsigned int)[msg length]; i < len; i++) {
+        printf("%d ", (int)cmsg[i]);
+    }
+    printf("\n");
+    
+    if (EVP_SignInit(&ctx, EVP_sha256()) != 1) {
+        printf("failed to init signing context\n");
+        return nil;
+    };
+    
+    if (EVP_SignUpdate(&ctx, cmsg, (unsigned int)[msg length]) != 1) {
+        printf("failed to update digest\n");
+        return nil;
+    }
+    
+    if (EVP_SignFinal(&ctx, sig, &len, self.pkey) != 1) {
+        printf("failed to finalize digest\n");
+        return nil;
+    }
+    
+    return [[NSString alloc] initWithBytes: sig length: len encoding:NSASCIIStringEncoding];
 }
 
 - (void)dealloc

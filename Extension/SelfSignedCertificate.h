@@ -21,5 +21,6 @@
 
 - (id)init;
 - (NSString*)toDer;
+- (NSString*)signData:(NSData*)msg;
 
 @end

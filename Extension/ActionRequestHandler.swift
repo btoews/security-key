@@ -61,7 +61,8 @@ class ActionRequestHandler: NSObject, NSExtensionRequestHandling {
     func itemLoadCompletedWithPreprocessingResults(javaScriptValues: NSDictionary) {
         guard
             let appId = javaScriptValues["appId"] as? String,
-            var toSign = javaScriptValues["toSign"] as? String
+            let jsonToSign = javaScriptValues["toSign"] as? String,
+            let toSign = decodeJsonByteArrayAsString(jsonToSign)
         else {
             print("bad data from JavaScript")
             return
@@ -75,18 +76,23 @@ class ActionRequestHandler: NSObject, NSExtensionRequestHandling {
             return
         }
         
-        guard
-            let ssc = SelfSignedCertificate()
+        guard let ssc = SelfSignedCertificate()
         else {
             print("error generating certificate")
             return
         }
         
+        let fullToSign = NSMutableData()
+        fullToSign.appendData(toSign)
+        fullToSign.appendData(key)
+       
+        guard let sig = ssc.signData(fullToSign)
+        else {
+            print("error signing register request")
+            return
+        }
         
-        toSign += strKey
-//        sig = ssc.Sign(toSign)
-        
-        self.doneWithResults(["signature": "some signature", "publicKey": strKey, "certificate": ssc.toDer()])
+        self.doneWithResults(["signature": sig, "publicKey": strKey, "certificate": ssc.toDer()])
         
         
 //        KeyInterface.generateSignatureForData(toSign, withKeyName: appId) { (sig, err) in
@@ -99,6 +105,28 @@ class ActionRequestHandler: NSObject, NSExtensionRequestHandling {
 //                self.doneWithResults(["error": "failed to sign message"])
 //            }
 //        }
+    }
+    
+    // There were encoding issues passing a binary string from JavaScript. My shitty solution is to
+    // JSON serialize a byte array in JavaScript and decode it here...
+    func decodeJsonByteArrayAsString(raw: String) -> NSData? {
+        guard let rawData = raw.dataUsingEncoding(NSUTF8StringEncoding) else {
+            print("error converting raw to data")
+            return nil
+        }
+
+        do {
+            if let ints = try NSJSONSerialization.JSONObjectWithData(rawData, options: []) as? [Int] {
+                let uints = ints.map { UInt8($0) }
+                return NSData(bytes: uints, length: uints.count)
+            } else {
+                print("bad json data")
+                return nil
+            }
+        } catch {
+            print("error deserializing json")
+            return nil
+        }
     }
     
     func doneWithResults(resultsForJavaScriptFinalizeArg: [NSObject: AnyObject]?) {
