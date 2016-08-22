@@ -36,6 +36,11 @@ class ActionRequestHandler: NSObject, NSExtensionRequestHandling {
         
         var found = false
         
+        let ssc = SelfSignedCertificate()
+        let der = ssc.toDer()
+        print(der)
+
+        
         outer:
             for item: AnyObject in context.inputItems {
                 let extItem = item as! NSExtensionItem

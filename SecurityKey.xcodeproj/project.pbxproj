@@ -14,8 +14,10 @@
 		F739A2BD1D63AE78001F025C /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = F739A2BB1D63AE78001F025C /* LaunchScreen.storyboard */; };
 		F739A2CB1D63AF7F001F025C /* ActionRequestHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = F739A2CA1D63AF7F001F025C /* ActionRequestHandler.swift */; };
 		F739A2D21D63AF7F001F025C /* Extension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = F739A2C81D63AF7F001F025C /* Extension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		F739A31D1D64BA48001F025C /* KeyInterface.m in Sources */ = {isa = PBXBuildFile; fileRef = F739A31C1D64BA48001F025C /* KeyInterface.m */; };
 		F786B2581D66145F009EF3D6 /* Action.js in Resources */ = {isa = PBXBuildFile; fileRef = F786B2571D66145F009EF3D6 /* Action.js */; };
+		F7B6E9EB1D67BD2000B59A39 /* KeyInterface.m in Sources */ = {isa = PBXBuildFile; fileRef = F7B6E9EA1D67BD2000B59A39 /* KeyInterface.m */; };
+		F7B6E9EF1D67BDE800B59A39 /* openssl.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F7B6E9EE1D67BDE800B59A39 /* openssl.framework */; };
+		F7B6E9F71D67C83F00B59A39 /* SelfSignedCertificate.m in Sources */ = {isa = PBXBuildFile; fileRef = F7B6E9F61D67C83F00B59A39 /* SelfSignedCertificate.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -54,9 +56,12 @@
 		F739A2CA1D63AF7F001F025C /* ActionRequestHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionRequestHandler.swift; sourceTree = "<group>"; };
 		F739A2CF1D63AF7F001F025C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		F739A3151D64B861001F025C /* Extension-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Extension-Bridging-Header.h"; sourceTree = "<group>"; };
-		F739A31B1D64BA48001F025C /* KeyInterface.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = KeyInterface.h; path = ../../SecureEnclaveCrypto/KeyInterface/KeyInterface.h; sourceTree = "<group>"; };
-		F739A31C1D64BA48001F025C /* KeyInterface.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = KeyInterface.m; path = ../../SecureEnclaveCrypto/KeyInterface/KeyInterface.m; sourceTree = "<group>"; };
 		F786B2571D66145F009EF3D6 /* Action.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; path = Action.js; sourceTree = "<group>"; };
+		F7B6E9E91D67BD2000B59A39 /* KeyInterface.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = KeyInterface.h; sourceTree = "<group>"; };
+		F7B6E9EA1D67BD2000B59A39 /* KeyInterface.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = KeyInterface.m; sourceTree = "<group>"; };
+		F7B6E9EE1D67BDE800B59A39 /* openssl.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = openssl.framework; sourceTree = "<group>"; };
+		F7B6E9F61D67C83F00B59A39 /* SelfSignedCertificate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SelfSignedCertificate.m; sourceTree = "<group>"; };
+		F7B6E9F81D67C8E900B59A39 /* SelfSignedCertificate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SelfSignedCertificate.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -71,6 +76,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F7B6E9EF1D67BDE800B59A39 /* openssl.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -80,6 +86,7 @@
 		F739A2A61D63AE78001F025C = {
 			isa = PBXGroup;
 			children = (
+				F7B6E9EE1D67BDE800B59A39 /* openssl.framework */,
 				F739A2B11D63AE78001F025C /* SecurityKey */,
 				F739A2C91D63AF7F001F025C /* Extension */,
 				F739A2B01D63AE78001F025C /* Products */,
@@ -111,12 +118,14 @@
 		F739A2C91D63AF7F001F025C /* Extension */ = {
 			isa = PBXGroup;
 			children = (
+				F7B6E9E91D67BD2000B59A39 /* KeyInterface.h */,
+				F7B6E9EA1D67BD2000B59A39 /* KeyInterface.m */,
 				F786B2571D66145F009EF3D6 /* Action.js */,
-				F739A31B1D64BA48001F025C /* KeyInterface.h */,
-				F739A31C1D64BA48001F025C /* KeyInterface.m */,
 				F739A2CA1D63AF7F001F025C /* ActionRequestHandler.swift */,
 				F739A2CF1D63AF7F001F025C /* Info.plist */,
 				F739A3151D64B861001F025C /* Extension-Bridging-Header.h */,
+				F7B6E9F61D67C83F00B59A39 /* SelfSignedCertificate.m */,
+				F7B6E9F81D67C8E900B59A39 /* SelfSignedCertificate.h */,
 			);
 			path = Extension;
 			sourceTree = "<group>";
@@ -263,8 +272,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F7B6E9F71D67C83F00B59A39 /* SelfSignedCertificate.m in Sources */,
 				F739A2CB1D63AF7F001F025C /* ActionRequestHandler.swift in Sources */,
-				F739A31D1D64BA48001F025C /* KeyInterface.m in Sources */,
+				F7B6E9EB1D67BD2000B59A39 /* KeyInterface.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -414,6 +424,11 @@
 				CODE_SIGN_ENTITLEMENTS = Extension/Extension.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)",
+				);
+				HEADER_SEARCH_PATHS = "$(PROJECT_DIR)/**";
 				INFOPLIST_FILE = Extension/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.github.SecurityKey.Extension;
@@ -432,6 +447,11 @@
 				CODE_SIGN_ENTITLEMENTS = Extension/Extension.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)",
+				);
+				HEADER_SEARCH_PATHS = "$(PROJECT_DIR)/**";
 				INFOPLIST_FILE = Extension/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.github.SecurityKey.Extension;
