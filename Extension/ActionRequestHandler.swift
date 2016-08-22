@@ -92,7 +92,11 @@ class ActionRequestHandler: NSObject, NSExtensionRequestHandling {
             return
         }
         
-        self.doneWithResults(["signature": sig, "publicKey": strKey, "certificate": ssc.toDer()])
+        self.doneWithResults([
+            "signature": sig,
+            "publicKey": strKey,
+            "certificate": ssc.toDer()
+        ])
         
         
 //        KeyInterface.generateSignatureForData(toSign, withKeyName: appId) { (sig, err) in

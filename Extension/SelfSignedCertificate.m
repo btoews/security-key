@@ -94,11 +94,6 @@
     unsigned char* sig = (unsigned char*)malloc(EVP_PKEY_size(self.pkey));
     unsigned int len;
     
-    for(unsigned int i = 0, len = (unsigned int)[msg length]; i < len; i++) {
-        printf("%d ", (int)cmsg[i]);
-    }
-    printf("\n");
-    
     if (EVP_SignInit(&ctx, EVP_sha256()) != 1) {
         printf("failed to init signing context\n");
         return nil;
