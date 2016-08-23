@@ -9,6 +9,7 @@ SignRequest.USER_PRESENCE = 1;
 SignRequest.COUNTER = [0, 0, 0, 0];
 
 SignRequest.prototype.response = function() {
+  console.log('SignRequest.prototype.response');
   return new Promise(function() {
     this.signatureDataBytes().then(function(sigData) {
       var response = {
@@ -19,10 +20,11 @@ SignRequest.prototype.response = function() {
 
       resolve(JSON.stringify(response));
     });
-  });
+  }.bind(this));
 };
 
 SignRequest.prototype.signatureDataBytes = function() {
+  console.log('SignRequest.prototype.signatureDataBytes');
   return new Promise(function(resolve, reject) {
     this.signatureBytes().then(function(sig) {
       var bytes = [].concat(
@@ -33,25 +35,27 @@ SignRequest.prototype.signatureDataBytes = function() {
 
       resolve(bytes);
     });
-  });
+  }.bind(this));
 };
 
 SignRequest.prototype.signatureBytes = function() {
+  console.log('SignRequest.prototype.signatureBytes');
   return new Promise(function (resolve, reject) {
     var toSign = [].concat(
-      this.applicationParameter,
+      this.applicationParameter(),
       SignRequest.USER_PRESENCE,
       SignRequest.COUNTER,
-      this.challengeParamter
+      this.challengeParameter()
     );
 
-    this.signer.sign(toSign).then(function(sig) {
+    this.signer.sign(this.appId, toSign).then(function(sig) {
       resolve(UTIL_StringToBytes(sig));
     });
-  });
+  }.bind(this));
 };
 
 SignRequest.prototype.clientDataJson = function() {
+  console.log('SignRequest.prototype.clientDataJson');
   clientData = new ClientData(
     ClientData.AUTHENTICATION_TYP,
     this.challenge,
@@ -59,4 +63,16 @@ SignRequest.prototype.clientDataJson = function() {
   );
 
   return clientData.json();
-}
+};
+
+SignRequest.prototype.applicationParameter = function() {
+  d = new SHA256();
+  d.update(UTIL_StringToBytes(this.appId));
+  return d.digest();
+};
+
+SignRequest.prototype.challengeParameter = function() {
+  d = new SHA256();
+  d.update(UTIL_StringToBytes(this.clientDataJson()));
+  return d.digest();
+};

@@ -6,7 +6,7 @@ ExtensionBridge.prototype.sign = function(appId, toSign) {
     this.reject = reject;
     this.request = {'type': 'sign', 'appId': appId, 'toSign': toSign};
     this.sendRequest();
-  });
+  }.bind(this));
 };
 
 ExtensionBridge.prototype.run = function(parameters) {

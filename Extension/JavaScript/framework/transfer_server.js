@@ -1,4 +1,5 @@
 function TransferServer(){
+  console.log('TransferServer()');
   this.transferElt = document.getElementById('js-transfer');
   this.transfer = this.transferElt.dataset;
   this.extReady = false;
@@ -33,6 +34,8 @@ TransferServer.prototype.finalize = function(parameters) {
 
 TransferServer.prototype.sendRequestIfReady = function() {
   if (this.extReady && this.clientReady) {
+    console.log('calling extensionCallBack');
+    console.log(this.transfer.request);
     this.extReady = this.clientReady = false;
     this.extensionCallBack(this.transfer.request);
   }

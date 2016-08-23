@@ -1,4 +1,5 @@
 function TransferClient() {
+  console.log('TransferClient()');
   this.transferElt = document.getElementById('js-transfer');
   this.transfer = this.transferElt.dataset;
   this.serverReady = false;
@@ -22,8 +23,11 @@ function TransferClient() {
 }
 
 TransferClient.prototype.sign = function(appId, toSign) {
+  console.log('TransferClient.prototype.sign');
   return new Promise(function(resolve, reject) {
-    this.transfer.request = {'type': 'sign', 'appId': appId, 'toSign': toSign};
+    this.transfer.request = JSON.stringify(
+      {'type': 'sign', 'appId': appId, 'toSign': toSign}
+    );
 
     this.transferElt.addEventListener('response', function(){
       console.log('Event: response');
@@ -32,7 +36,7 @@ TransferClient.prototype.sign = function(appId, toSign) {
 
     this.reqReady = true;
     this.sendRequestIfReady();
-  });
+  }.bind(this));
 };
 
 TransferClient.prototype.sendRequestIfReady = function() {
