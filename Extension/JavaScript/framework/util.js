@@ -3,7 +3,6 @@
 // found in the LICENSE file.
 
 /** @fileoverview Various string utility functions */
-'use strict';
 
 /**
  * Converts a string to an array of bytes.

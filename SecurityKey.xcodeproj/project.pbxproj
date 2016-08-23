@@ -247,14 +247,14 @@
 			files = (
 			);
 			inputPaths = (
-				"$(SRCROOT)/Extension/JavaScript/cryptotoken",
+				"$(SRCROOT)/Extension/JavaScript/framework",
 				"$(SRCROOT)/Extension/JavaScript/main.js",
 			);
 			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "if ! which brew &> /dev/null; then\n  echo \"You must have homebrew installed to build this project\"\n  exit 1\nfi\n\nbrew bundle\nnpm install\n\n# List main.js after the cryptotoken code so vars get defined before we use them.\nfind ${SCRIPT_INPUT_FILE_0} -type f | xargs -J % ./node_modules/.bin/uglifyjs % $SCRIPT_INPUT_FILE_1 -b -c hoist_vars > Extension/Action.js\n\n# ./node_modules/.bin/uglifyjs $SCRIPT_INPUT_FILE_1 -b > Extension/Action.js";
+			shellScript = "if ! which brew &> /dev/null; then\n  echo \"You must have homebrew installed to build this project\"\n  exit 1\nfi\n\nbrew bundle\nnpm install\n\n# List main.js after the cryptotoken code so vars get defined before we use them.\nfind ${SCRIPT_INPUT_FILE_0} -type f | xargs -J % ./node_modules/.bin/uglifyjs % $SCRIPT_INPUT_FILE_1 -b -c hoist_vars > Extension/Action.js";
 		};
 /* End PBXShellScriptBuildPhase section */
 

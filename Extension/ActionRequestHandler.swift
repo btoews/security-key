@@ -12,21 +12,6 @@ import MobileCoreServices
 class ActionRequestHandler: NSObject, NSExtensionRequestHandling {
     
     var extensionContext: NSExtensionContext?
-    
-    func generateOrGetKeyWithName(name:String) -> NSData? {
-        if KeyInterface.publicKeyExists(name) {
-            print("key pair exists")
-        } else {
-            if KeyInterface.generateTouchIDKeyPair(name) {
-                print("generated key pair")
-            } else {
-                print("error generating key pair")
-                return nil
-            }
-        }
-        
-        return KeyInterface.publicKeyBits(name)
-    }
 
     func beginRequestWithExtensionContext(context: NSExtensionContext) {
         self.extensionContext = context
@@ -59,37 +44,54 @@ class ActionRequestHandler: NSObject, NSExtensionRequestHandling {
     }
     
     func itemLoadCompletedWithPreprocessingResults(javaScriptValues: NSDictionary) {
+        guard let reqType = javaScriptValues["type"] as? String else {
+            print("bad request type")
+            return
+        }
+        
+        switch reqType {
+        case "enroll":
+            handleEnrollRequest(javaScriptValues)
+        case "sign":
+            handleSignRequest(javaScriptValues)
+        default:
+            print("bad request")
+            return
+        }
+    }
+    
+    func handleEnrollRequest(javaScriptValues: NSDictionary) {
         guard
             let appId = javaScriptValues["appId"] as? String,
             let jsonToSign = javaScriptValues["toSign"] as? String,
             let toSign = decodeJsonByteArrayAsString(jsonToSign)
-        else {
-            print("bad data from JavaScript")
-            return
+            else {
+                print("bad data from JavaScript")
+                return
         }
         
         guard
             let key = generateOrGetKeyWithName(appId),
             let strKey = String(data: key, encoding: NSASCIIStringEncoding)
-        else {
-            print("error generating or finding key")
-            return
+            else {
+                print("error generating or finding key")
+                return
         }
         
         guard let ssc = SelfSignedCertificate()
-        else {
-            print("error generating certificate")
-            return
+            else {
+                print("error generating certificate")
+                return
         }
         
         let fullToSign = NSMutableData()
         fullToSign.appendData(toSign)
         fullToSign.appendData(key)
-       
+        
         guard let sig = ssc.signData(fullToSign)
-        else {
-            print("error signing register request")
-            return
+            else {
+                print("error signing register request")
+                return
         }
         
         self.doneWithResults([
@@ -97,39 +99,26 @@ class ActionRequestHandler: NSObject, NSExtensionRequestHandling {
             "publicKey": strKey,
             "certificate": ssc.toDer()
         ])
-        
-        
-//        KeyInterface.generateSignatureForData(toSign, withKeyName: appId) { (sig, err) in
-//            if err == nil {
-//                let strSig = String(data: sig, encoding: NSASCIIStringEncoding)!
-//                let strKey = String(data: key, encoding: NSASCIIStringEncoding)!
-//                
-//                self.doneWithResults(["signature": strSig, "publicKey": strKey])
-//            } else {
-//                self.doneWithResults(["error": "failed to sign message"])
-//            }
-//        }
     }
     
-    // There were encoding issues passing a binary string from JavaScript. My shitty solution is to
-    // JSON serialize a byte array in JavaScript and decode it here...
-    func decodeJsonByteArrayAsString(raw: String) -> NSData? {
-        guard let rawData = raw.dataUsingEncoding(NSUTF8StringEncoding) else {
-            print("error converting raw to data")
-            return nil
+    func handleSignRequest(javaScriptValues: NSDictionary) {
+        guard
+            let appId = javaScriptValues["appId"] as? String,
+            let jsonToSign = javaScriptValues["toSign"] as? String,
+            let toSign = decodeJsonByteArrayAsString(jsonToSign)
+            else {
+                print("bad data from JavaScript")
+                return
         }
-
-        do {
-            if let ints = try NSJSONSerialization.JSONObjectWithData(rawData, options: []) as? [Int] {
-                let uints = ints.map { UInt8($0) }
-                return NSData(bytes: uints, length: uints.count)
+        
+        KeyInterface.generateSignatureForData(toSign, withKeyName: appId) { (sig, err) in
+            if err == nil {
+                let strSig = String(data: sig, encoding: NSASCIIStringEncoding)!
+                self.doneWithResults(["signature": strSig])
             } else {
-                print("bad json data")
-                return nil
+                print("failed to sign message")
+                return
             }
-        } catch {
-            print("error deserializing json")
-            return nil
         }
     }
     
@@ -146,5 +135,42 @@ class ActionRequestHandler: NSObject, NSExtensionRequestHandling {
         }
         
         self.extensionContext = nil
+    }
+    
+    func generateOrGetKeyWithName(name:String) -> NSData? {
+        if KeyInterface.publicKeyExists(name) {
+            print("key pair exists")
+        } else {
+            if KeyInterface.generateTouchIDKeyPair(name) {
+                print("generated key pair")
+            } else {
+                print("error generating key pair")
+                return nil
+            }
+        }
+        
+        return KeyInterface.publicKeyBits(name)
+    }
+    
+    // There were encoding issues passing a binary string from JavaScript. My shitty solution is to
+    // JSON serialize a byte array in JavaScript and decode it here...
+    func decodeJsonByteArrayAsString(raw: String) -> NSData? {
+        guard let rawData = raw.dataUsingEncoding(NSUTF8StringEncoding) else {
+            print("error converting raw to data")
+            return nil
+        }
+        
+        do {
+            if let ints = try NSJSONSerialization.JSONObjectWithData(rawData, options: []) as? [Int] {
+                let uints = ints.map { UInt8($0) }
+                return NSData(bytes: uints, length: uints.count)
+            } else {
+                print("bad json data")
+                return nil
+            }
+        } catch {
+            print("error deserializing json")
+            return nil
+        }
     }
 }
