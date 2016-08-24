@@ -1,3 +1,7 @@
+// signer    - Function
+// challenge - String
+// appId     - String
+// keyHandle - String
 function SignRequest(signer, challenge, appId, keyHandle) {
   this.signer = signer;
   this.challenge = challenge;
@@ -9,53 +13,47 @@ SignRequest.USER_PRESENCE = 1;
 SignRequest.COUNTER = [0, 0, 0, 0];
 
 SignRequest.prototype.response = function() {
-  console.log('SignRequest.prototype.response');
-  return new Promise(function() {
-    this.signatureDataBytes().then(function(sigData) {
-      var response = {
-        'clientData': B64_encode(UTIL_StringToBytes(this.clientDataJson())),
-        'keyHandle': B64_encode(UTIL_StringToBytes(this.keyHandle)),
-        'signatureData': B64_encode(sigData)
-      };
+  var self = this;
 
-      resolve(JSON.stringify(response));
-    });
-  }.bind(this));
+  return self.signatureDataBytes().then(function(sigData) {
+    var response = {
+      'clientData': B64_encode(UTIL_StringToBytes(self.clientDataJson())),
+      'keyHandle': B64_encode(UTIL_StringToBytes(self.keyHandle)),
+      'signatureData': B64_encode(sigData)
+    };
+
+    return Promise.resolve(JSON.stringify(response));
+  });
+
 };
 
 SignRequest.prototype.signatureDataBytes = function() {
-  console.log('SignRequest.prototype.signatureDataBytes');
-  return new Promise(function(resolve, reject) {
-    this.signatureBytes().then(function(sig) {
-      var bytes = [].concat(
-        SignRequest.USER_PRESENCE,
-        SignRequest.COUNTER,
-        sig
-      );
+  return this.signatureBytes().then(function(sig) {
+    var bytes = [].concat(
+      SignRequest.USER_PRESENCE,
+      SignRequest.COUNTER,
+      sig
+    );
 
-      resolve(bytes);
-    });
-  }.bind(this));
+    return Promise.resolve(bytes);
+  });
 };
 
 SignRequest.prototype.signatureBytes = function() {
-  console.log('SignRequest.prototype.signatureBytes');
-  return new Promise(function (resolve, reject) {
-    var toSign = [].concat(
-      this.applicationParameter(),
-      SignRequest.USER_PRESENCE,
-      SignRequest.COUNTER,
-      this.challengeParameter()
-    );
+  var toSign = [].concat(
+    this.applicationParameter(),
+    SignRequest.USER_PRESENCE,
+    SignRequest.COUNTER,
+    this.challengeParameter()
+  );
 
-    this.signer.sign(this.appId, toSign).then(function(sig) {
-      resolve(UTIL_StringToBytes(sig));
-    });
-  }.bind(this));
+  var appIdHash = B64_encode(this.applicationParameter());
+  return this.signer.sign(appIdHash, toSign).then(function(sig) {
+    return Promise.resolve(UTIL_StringToBytes(sig));
+  });
 };
 
 SignRequest.prototype.clientDataJson = function() {
-  console.log('SignRequest.prototype.clientDataJson');
   clientData = new ClientData(
     ClientData.AUTHENTICATION_TYP,
     this.challenge,

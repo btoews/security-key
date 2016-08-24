@@ -1,19 +1,16 @@
 function TransferClient() {
-  console.log('TransferClient()');
   this.transferElt = document.getElementById('js-transfer');
   this.transfer = this.transferElt.dataset;
   this.serverReady = false;
   this.reqReady = false;
 
   // Either side can ping. Ping+Pong -> serverReady
-  this.transferElt.addEventListener('serverPong', function(){
-    console.log('Event: serverPong');
+  this.eventFired('serverPong').then(function() {
     this.serverReady = true;
     this.sendRequestIfReady();
-  }.bind(this));
+  }.bind(self));
 
-  this.transferElt.addEventListener('serverPing', function() {
-    console.log('Event: serverPing');
+  this.eventFired('serverPing').then(function() {
     this.transferElt.dispatchEvent(new Event('clientPong'));
     this.serverReady = true;
     this.sendRequestIfReady();
@@ -23,19 +20,24 @@ function TransferClient() {
 }
 
 TransferClient.prototype.sign = function(appId, toSign) {
-  console.log('TransferClient.prototype.sign');
+  this.transfer.request = JSON.stringify(
+    {'type': 'sign', 'appId': appId, 'toSign': JSON.stringify(toSign)}
+  );
+
+  var promise = this.eventFired('response').then(function() {
+    var parsed = JSON.parse(this.transfer.response);
+    return Promise.resolve(parsed.signature);
+  }.bind(this));
+
+  this.reqReady = true;
+  this.sendRequestIfReady();
+
+  return promise;
+};
+
+TransferClient.prototype.eventFired = function(name) {
   return new Promise(function(resolve, reject) {
-    this.transfer.request = JSON.stringify(
-      {'type': 'sign', 'appId': appId, 'toSign': toSign}
-    );
-
-    this.transferElt.addEventListener('response', function(){
-      console.log('Event: response');
-      resolve(this.transfer.response);
-    }.bind(this));
-
-    this.reqReady = true;
-    this.sendRequestIfReady();
+    this.transferElt.addEventListener(name, resolve);
   }.bind(this));
 };
 

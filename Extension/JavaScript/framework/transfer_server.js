@@ -1,18 +1,15 @@
 function TransferServer(){
-  console.log('TransferServer()');
   this.transferElt = document.getElementById('js-transfer');
   this.transfer = this.transferElt.dataset;
   this.extReady = false;
   this.clientReady = false;
 
-  this.transferElt.addEventListener('request', function(){
-    console.log('Event: request');
+  this.eventFired('request').then(function() {
     this.clientReady = true;
     this.sendRequestIfReady();
   }.bind(this));
 
-  this.transferElt.addEventListener('clientPing', function() {
-    console.log('Event: clientPong');
+  this.eventFired('clientPing').then(function() {
     this.transferElt.dispatchEvent(new Event('serverPong'));
   }.bind(this));
 
@@ -20,23 +17,26 @@ function TransferServer(){
 };
 
 TransferServer.prototype.run = function(parameters) {
-  console.log('TransferServer.prototype.run');
   this.extensionCallBack = parameters.completionFunction;
   this.extReady = true;
   this.sendRequestIfReady();
 };
 
 TransferServer.prototype.finalize = function(parameters) {
-  console.log('TransferServer.prototype.finalize');
-  this.transfer.response = parameters;
+  this.transfer.response = JSON.stringify(parameters);
   this.transferElt.dispatchEvent(new Event('response'));
 };
 
 TransferServer.prototype.sendRequestIfReady = function() {
   if (this.extReady && this.clientReady) {
-    console.log('calling extensionCallBack');
-    console.log(this.transfer.request);
     this.extReady = this.clientReady = false;
-    this.extensionCallBack(this.transfer.request);
+    var parsed = JSON.parse(this.transfer.request)
+    this.extensionCallBack(parsed);
   }
 }
+
+TransferServer.prototype.eventFired = function(name) {
+  return new Promise(function(resolve, reject) {
+    this.transferElt.addEventListener(name, resolve);
+  }.bind(this));
+};

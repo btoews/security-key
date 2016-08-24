@@ -66,7 +66,7 @@ class ActionRequestHandler: NSObject, NSExtensionRequestHandling {
             let jsonToSign = javaScriptValues["toSign"] as? String,
             let toSign = decodeJsonByteArrayAsString(jsonToSign)
             else {
-                print("bad data from JavaScript")
+                print("bad enroll data from JavaScript")
                 return
         }
         
@@ -107,7 +107,7 @@ class ActionRequestHandler: NSObject, NSExtensionRequestHandling {
             let jsonToSign = javaScriptValues["toSign"] as? String,
             let toSign = decodeJsonByteArrayAsString(jsonToSign)
             else {
-                print("bad data from JavaScript")
+                print("bad signing data from JavaScript")
                 return
         }
         
