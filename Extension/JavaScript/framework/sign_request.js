@@ -61,13 +61,13 @@ SignRequest.prototype.clientDataJson = function() {
 };
 
 SignRequest.prototype.applicationParameter = function() {
-  d = new SHA256();
+  var d = new SHA256();
   d.update(UTIL_StringToBytes(this.appId));
   return d.digest();
 };
 
 SignRequest.prototype.challengeParameter = function() {
-  d = new SHA256();
+  var d = new SHA256();
   d.update(UTIL_StringToBytes(this.clientDataJson()));
   return d.digest();
 };

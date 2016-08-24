@@ -24,7 +24,7 @@ RegistrationRequest.prototype.response = function() {
 
 RegistrationRequest.prototype.registrationDataBytes = function() {
   return this.extensionResponse().then(function(extResp) {
-    bytes = [5].concat(
+    var bytes = [5].concat(
       UTIL_StringToBytes(extResp.publicKey),
       RegistrationRequest.KeyHandleSize,
       this.keyHandle,
@@ -48,16 +48,16 @@ RegistrationRequest.prototype.extensionResponse = function() {
   return this.enroller.register(appIdHash, toSign).then(function(resp) {
     return Promise.resolve(resp);
   });
-}
+};
 
 RegistrationRequest.prototype.applicationParameter = function() {
-  d = new SHA256();
+  var d = new SHA256();
   d.update(UTIL_StringToBytes(this.appId));
   return d.digest();
 };
 
 RegistrationRequest.prototype.challengeParameter = function() {
-  d = new SHA256();
+  var d = new SHA256();
   d.update(UTIL_StringToBytes(this.clientData().json()));
   return d.digest();
 };

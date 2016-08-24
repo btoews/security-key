@@ -14,7 +14,7 @@ function TransferServer(){
   }.bind(this));
 
   this.transferElt.dispatchEvent(new Event('serverPing'));
-};
+}
 
 TransferServer.prototype.run = function(parameters) {
   this.extensionCallBack = parameters.completionFunction;
@@ -30,10 +30,10 @@ TransferServer.prototype.finalize = function(parameters) {
 TransferServer.prototype.sendRequestIfReady = function() {
   if (this.extReady && this.clientReady) {
     this.extReady = this.clientReady = false;
-    var parsed = JSON.parse(this.transfer.request)
+    var parsed = JSON.parse(this.transfer.request);
     this.extensionCallBack(parsed);
   }
-}
+};
 
 TransferServer.prototype.eventFired = function(name) {
   return new Promise(function(resolve, reject) {

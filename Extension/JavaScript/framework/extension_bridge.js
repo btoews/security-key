@@ -16,11 +16,11 @@ ExtensionBridge.prototype.run = function(parameters) {
 
 ExtensionBridge.prototype.sendRequest = function() {
   if (typeof this.request == 'undefined') {
-    return
+    return;
   }
 
   if (typeof this.extensionCallBack == 'undefined') {
-    return
+    return;
   }
 
   this.extensionCallBack(this.request);
