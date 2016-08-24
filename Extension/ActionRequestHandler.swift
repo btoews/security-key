@@ -50,8 +50,8 @@ class ActionRequestHandler: NSObject, NSExtensionRequestHandling {
         }
         
         switch reqType {
-        case "enroll":
-            handleEnrollRequest(javaScriptValues)
+        case "register":
+            handleRegisterRequest(javaScriptValues)
         case "sign":
             handleSignRequest(javaScriptValues)
         default:
@@ -60,13 +60,13 @@ class ActionRequestHandler: NSObject, NSExtensionRequestHandling {
         }
     }
     
-    func handleEnrollRequest(javaScriptValues: NSDictionary) {
+    func handleRegisterRequest(javaScriptValues: NSDictionary) {
         guard
             let appId = javaScriptValues["appId"] as? String,
             let jsonToSign = javaScriptValues["toSign"] as? String,
             let toSign = decodeJsonByteArrayAsString(jsonToSign)
             else {
-                print("bad enroll data from JavaScript")
+                print("bad register data from JavaScript")
                 return
         }
         

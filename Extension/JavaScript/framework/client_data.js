@@ -4,6 +4,9 @@ function ClientData(typ, challenge, origin) {
   this.origin = origin;
 }
 
+ClientData.AUTHENTICATION_TYP = 'navigator.id.getAssertion';
+ClientData.REGISTRATION_TYP   = 'navigator.id.finishEnrollment';
+
 ClientData.prototype.json = function() {
   return JSON.stringify({
     challenge: this.challenge,
@@ -11,6 +14,3 @@ ClientData.prototype.json = function() {
     typ: this.typ
   });
 };
-
-ClientData.AUTHENTICATION_TYP = 'navigator.id.getAssertion';
-ClientData.REGISTRATION_TYP   = 'navigator.id.finishEnrollment';

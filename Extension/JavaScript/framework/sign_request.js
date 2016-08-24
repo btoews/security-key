@@ -1,8 +1,8 @@
 // signer    - Function
-// challenge - String
 // appId     - String
+// challenge - String
 // keyHandle - String
-function SignRequest(signer, challenge, appId, keyHandle) {
+function SignRequest(signer, appId, challenge, keyHandle) {
   this.signer = signer;
   this.challenge = challenge;
   this.appId = appId;
@@ -13,18 +13,15 @@ SignRequest.USER_PRESENCE = 1;
 SignRequest.COUNTER = [0, 0, 0, 0];
 
 SignRequest.prototype.response = function() {
-  var self = this;
-
-  return self.signatureDataBytes().then(function(sigData) {
+  return this.signatureDataBytes().then(function(sigData) {
     var response = {
-      'clientData': B64_encode(UTIL_StringToBytes(self.clientDataJson())),
-      'keyHandle': B64_encode(UTIL_StringToBytes(self.keyHandle)),
+      'clientData': B64_encode(UTIL_StringToBytes(this.clientDataJson())),
+      'keyHandle': B64_encode(UTIL_StringToBytes(this.keyHandle)),
       'signatureData': B64_encode(sigData)
     };
 
     return Promise.resolve(JSON.stringify(response));
-  });
-
+  }.bind(this));
 };
 
 SignRequest.prototype.signatureDataBytes = function() {
@@ -54,7 +51,7 @@ SignRequest.prototype.signatureBytes = function() {
 };
 
 SignRequest.prototype.clientDataJson = function() {
-  clientData = new ClientData(
+  var clientData = new ClientData(
     ClientData.AUTHENTICATION_TYP,
     this.challenge,
     this.appId
