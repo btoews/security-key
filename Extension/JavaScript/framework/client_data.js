@@ -1,5 +1,5 @@
 function ClientData(typ, challenge, origin) {
-  this.type = typ;
+  this.typ = typ;
   this.challenge = challenge;
   this.origin = origin;
 }

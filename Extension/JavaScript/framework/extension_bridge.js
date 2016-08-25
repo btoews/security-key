@@ -1,9 +1,9 @@
 var ExtensionBridge = function() {};
 
-ExtensionBridge.prototype.sign = function(appId, toSign) {
+ExtensionBridge.prototype.sign = function(keyHandle, toSign) {
   console.log('ExtensionBridge.prototype.sign');
   return new Promise(function(resolve, reject) {
-    this.request = {'type': 'sign', 'appId': appId, 'toSign': JSON.stringify(toSign)};
+    this.request = {'type': 'sign', 'keyHandle': keyHandle, 'toSign': JSON.stringify(toSign)};
     this.sendResponse = function(parameters) {
       resolve(parameters.signature);
     };
@@ -12,10 +12,10 @@ ExtensionBridge.prototype.sign = function(appId, toSign) {
   }.bind(this));
 };
 
-ExtensionBridge.prototype.register = function(appId, toSign) {
+ExtensionBridge.prototype.register = function(keyHandle, toSign) {
   console.log('ExtensionBridge.prototype.register');
   return new Promise(function(resolve, reject) {
-    this.request = {'type': 'register', 'appId': appId, 'toSign': JSON.stringify(toSign)};
+    this.request = {'type': 'register', 'keyHandle': keyHandle, 'toSign': JSON.stringify(toSign)};
     this.sendResponse = resolve;
 
     this.sendRequest();
@@ -37,7 +37,7 @@ ExtensionBridge.prototype.sendRequest = function() {
     return;
   }
 
-  console.log('sending request');
+  console.log('ExtensionBridge.prototype.sendRequest');
   console.log(this.request);
   this.extensionCallBack(this.request);
 };

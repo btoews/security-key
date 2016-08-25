@@ -14,6 +14,7 @@ class ActionRequestHandler: NSObject, NSExtensionRequestHandling {
     var extensionContext: NSExtensionContext?
 
     func beginRequestWithExtensionContext(context: NSExtensionContext) {
+        print("beginRequestWithExtensionContext")
         self.extensionContext = context
         
         var found = false
@@ -62,7 +63,7 @@ class ActionRequestHandler: NSObject, NSExtensionRequestHandling {
     
     func handleRegisterRequest(javaScriptValues: NSDictionary) {
         guard
-            let appId = javaScriptValues["appId"] as? String,
+            let keyHandle = javaScriptValues["keyHandle"] as? String,
             let jsonToSign = javaScriptValues["toSign"] as? String,
             let toSign = decodeJsonByteArrayAsString(jsonToSign)
             else {
@@ -71,7 +72,7 @@ class ActionRequestHandler: NSObject, NSExtensionRequestHandling {
         }
         
         guard
-            let key = generateOrGetKeyWithName(appId),
+            let key = generateOrGetKeyWithName(keyHandle),
             let strKey = String(data: key, encoding: NSASCIIStringEncoding)
             else {
                 print("error generating or finding key")
@@ -103,7 +104,7 @@ class ActionRequestHandler: NSObject, NSExtensionRequestHandling {
     
     func handleSignRequest(javaScriptValues: NSDictionary) {
         guard
-            let appId = javaScriptValues["appId"] as? String,
+            let keyHandle = javaScriptValues["keyHandle"] as? String,
             let jsonToSign = javaScriptValues["toSign"] as? String,
             let toSign = decodeJsonByteArrayAsString(jsonToSign)
             else {
@@ -111,12 +112,14 @@ class ActionRequestHandler: NSObject, NSExtensionRequestHandling {
                 return
         }
         
-        KeyInterface.generateSignatureForData(toSign, withKeyName: appId) { (sig, err) in
+        print("sign request. toSign: \(jsonToSign)")
+        
+        KeyInterface.generateSignatureForData(toSign, withKeyName: keyHandle) { (sig, err) in
             if err == nil {
                 let strSig = String(data: sig, encoding: NSASCIIStringEncoding)!
                 self.doneWithResults(["signature": strSig])
             } else {
-                print("failed to sign message")
+                print("failed to sign message: \(err)")
                 return
             }
         }

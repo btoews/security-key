@@ -1,5 +1,49 @@
 "use strict";
 
+function getOriginFromUrl(url) {
+    var origin, re = new RegExp("^(https?://)[^/]*/?"), originarray = re.exec(url);
+    if (null == originarray) return originarray;
+    for (origin = originarray[0]; "/" == origin.charAt(origin.length - 1); ) origin = origin.substring(0, origin.length - 1);
+    return "http:" == origin || "https:" == origin ? null : origin;
+}
+
+function getOriginsFromJson(text) {
+    var urls, i, appIdData, trustedFacets, versionBlock, origins, url, origin;
+    try {
+        if (appIdData = JSON.parse(text), Array.isArray(appIdData)) urls = appIdData; else {
+            if (trustedFacets = appIdData.trustedFacets) for (i = 0; versionBlock = trustedFacets[i]; i++) if (versionBlock.version && 1 == versionBlock.version.major && 0 == versionBlock.version.minor) {
+                urls = versionBlock.ids;
+                break;
+            }
+            if ("undefined" == typeof urls) throw Error("Could not find trustedFacets for version 1.0");
+        }
+        for (origins = {}, i = 0; url = urls[i]; i++) origin = getOriginFromUrl(url), origin && (origins[origin] = origin);
+        return Object.keys(origins);
+    } catch (e) {
+        return console.error(UTIL_fmt("could not parse " + text)), [];
+    }
+}
+
+function getDistinctAppIds(signChallenges) {
+    var appIds, i, request, appId;
+    if (!signChallenges) return [];
+    for (appIds = {}, i = 0; request = signChallenges[i]; i++) appId = request.appId, 
+    appId && (appIds[appId] = appId);
+    return Object.keys(appIds);
+}
+
+function AppIdChecker() {}
+
+function AppIdCheckerFactory() {}
+
+function XhrAppIdChecker(fetcher) {
+    this.fetcher_ = fetcher;
+}
+
+function XhrAppIdCheckerFactory(fetcher) {
+    this.fetcher_ = fetcher;
+}
+
 function B64_encode(bytes, opt_length) {
     var b64out, result, shift, accu, inputIndex, i;
     for (opt_length || (opt_length = bytes.length), b64out = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_", 
@@ -31,11 +75,21 @@ function B64_decode(string) {
 }
 
 function ClientData(typ, challenge, origin) {
-    this.type = typ, this.challenge = challenge, this.origin = origin;
+    this.typ = typ, this.challenge = challenge, this.origin = origin;
+}
+
+function keyHandleFromAppId(appId) {
+    var d = new SHA256();
+    return d.update(UTIL_StringToBytes(keyHandleBase + appId)), d.digest();
+}
+
+function validKeyHandleForAppId(keyHandle, appId) {
+    var expected = B64_encode(keyHandleFromAppId(appId)), actual = B64_encode(keyHandle);
+    return expected == actual;
 }
 
 function RegistrationRequest(enroller, appId, challenge) {
-    this.enroller = enroller, this.appId = appId, this.challenge = challenge, this.keyHandle = Array.from(window.crypto.getRandomValues(new Uint8Array(RegistrationRequest.KeyHandleSize)));
+    this.enroller = enroller, this.appId = appId, this.challenge = challenge, this.keyHandle = keyHandleFromAppId(appId);
 }
 
 function SHA256() {
@@ -47,6 +101,16 @@ function SHA256() {
 
 function SignRequest(signer, appId, challenge, keyHandle) {
     this.signer = signer, this.challenge = challenge, this.appId = appId, this.keyHandle = keyHandle;
+}
+
+function TextFetcher() {}
+
+function XhrTextFetcher() {}
+
+function Timer(seconds) {
+    this._expired = !1, setTimeout(function() {
+        this._expired = !0;
+    }.bind(this), 1e3 * seconds);
 }
 
 function TransferClient() {
@@ -200,29 +264,43 @@ function UTIL_fmt(s) {
     line;
 }
 
-function u2fAuthenticate() {
-    var challenge, keyHandle, appId, signRequest;
-    console.log("3"), challenge = UTIL_BytesToString(window.crypto.getRandomValues(new Uint8Array(challengeSize))), 
-    keyHandle = UTIL_BytesToString(window.crypto.getRandomValues(new Uint8Array(keyHandleSize))), 
-    appId = window.location.origin, signRequest = new SignRequest(extensionBridge, appId, challenge, keyHandle), 
-    signRequest.response().then(function(res) {
-        console.log("sign response"), console.log(res);
-    }, function(err) {
-        console.log("sign error"), console.log(err);
+var B64_inmap, ExtensionBridge, keyHandleBase, pingerPonger, u2fClient, u2fServer, UTIL_ASN_INT, UTIL_ASN_SEQUENCE, UTIL_events, UTIL_max_events, extensionBridge, server, ExtensionPreprocessingJS;
+
+AppIdChecker.prototype.checkAppIds = function(timer, origin, appIds, allowHttp, opt_logMsgUrl) {}, 
+AppIdCheckerFactory.prototype.create = function() {}, XhrAppIdChecker.prototype.checkAppIds = function(timer, origin, appIds, allowHttp, opt_logMsgUrl) {
+    var appIdsMap, i, self, appIdChecks;
+    if (this.timer_) return Promise.resolve(!1);
+    if (this.timer_ = timer, this.origin_ = origin, appIdsMap = {}, appIds) for (i = 0; i < appIds.length; i++) appIdsMap[appIds[i]] = appIds[i];
+    return this.distinctAppIds_ = Object.keys(appIdsMap), this.allowHttp_ = allowHttp, 
+    this.logMsgUrl_ = opt_logMsgUrl, this.distinctAppIds_.length ? this.allAppIdsEqualOrigin_() ? Promise.resolve(!0) : (self = this, 
+    appIdChecks = self.distinctAppIds_.map(self.checkAppId_.bind(self)), Promise.all(appIdChecks).then(function(results) {
+        return results.every(function(result) {
+            return result;
+        });
+    })) : Promise.resolve(!1);
+}, XhrAppIdChecker.prototype.checkAppId_ = function(appId) {
+    var p, self;
+    return appId == this.origin_ ? Promise.resolve(!0) : (p = this.fetchAllowedOriginsForAppId_(appId), 
+    self = this, p.then(function(allowedOrigins) {
+        return allowedOrigins.indexOf(self.origin_) != -1 || (console.warn(UTIL_fmt("Origin " + self.origin_ + " not allowed by app id " + appId)), 
+        !1);
+    }));
+}, XhrAppIdChecker.prototype.allAppIdsEqualOrigin_ = function() {
+    var self = this;
+    return this.distinctAppIds_.every(function(appId) {
+        return appId == self.origin_;
     });
-}
-
-function u2fRegister() {
-    var appId = window.location.origin, challenge = B64_encode(window.crypto.getRandomValues(new Uint8Array(challengeSize))), registerRequest = new RegistrationRequest(extensionBridge, appId, challenge);
-    registerRequest.response().then(function(resp) {
-        console.log("registration response"), console.log(resp);
-    }, function(err) {
-        console.log("registration error"), console.log(err);
-    });
-}
-
-var ExtensionBridge, MessageTypes, UTIL_ASN_INT, UTIL_ASN_SEQUENCE, UTIL_events, UTIL_max_events, extensionBridge, challengeSize, keyHandleSize, transferClient, ExtensionPreprocessingJS, B64_inmap = [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 63, 0, 0, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 0, 0, 0, 0, 64, 0, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 0, 0, 0, 0, 0 ];
-
+}, XhrAppIdChecker.prototype.fetchAllowedOriginsForAppId_ = function(appId) {
+    var origin, p, self;
+    return console.log("fetching allowed origins for " + appId), appId ? 0 != appId.indexOf("http://") || this.allowHttp_ ? (origin = getOriginFromUrl(appId)) ? (p = this.fetcher_.fetch(appId), 
+    self = this, p.then(getOriginsFromJson, function(rc_) {
+        var rc = rc_;
+        return console.log(UTIL_fmt("fetching " + appId + " failed: " + rc)), rc >= 400 && rc < 500 || self.timer_.expired() ? [] : self.fetchAllowedOriginsForAppId_(appId);
+    })) : Promise.resolve([]) : (console.log(UTIL_fmt("http app ids disallowed, " + appId + " requested")), 
+    Promise.resolve([])) : Promise.resolve([]);
+}, XhrAppIdCheckerFactory.prototype.create = function() {
+    return new XhrAppIdChecker(this.fetcher_);
+}, B64_inmap = [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 63, 0, 0, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 0, 0, 0, 0, 64, 0, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 0, 0, 0, 0, 0 ], 
 ClientData.AUTHENTICATION_TYP = "navigator.id.getAssertion", ClientData.REGISTRATION_TYP = "navigator.id.finishEnrollment", 
 ClientData.prototype.json = function() {
     return JSON.stringify({
@@ -230,21 +308,21 @@ ClientData.prototype.json = function() {
         origin: this.origin,
         typ: this.typ
     });
-}, ExtensionBridge = function() {}, ExtensionBridge.prototype.sign = function(appId, toSign) {
+}, ExtensionBridge = function() {}, ExtensionBridge.prototype.sign = function(keyHandle, toSign) {
     return console.log("ExtensionBridge.prototype.sign"), new Promise(function(resolve, reject) {
         this.request = {
             type: "sign",
-            appId: appId,
+            keyHandle: keyHandle,
             toSign: JSON.stringify(toSign)
         }, this.sendResponse = function(parameters) {
             resolve(parameters.signature);
         }, this.sendRequest();
     }.bind(this));
-}, ExtensionBridge.prototype.register = function(appId, toSign) {
+}, ExtensionBridge.prototype.register = function(keyHandle, toSign) {
     return console.log("ExtensionBridge.prototype.register"), new Promise(function(resolve, reject) {
         this.request = {
             type: "register",
-            appId: appId,
+            keyHandle: keyHandle,
             toSign: JSON.stringify(toSign)
         }, this.sendResponse = resolve, this.sendRequest();
     }.bind(this));
@@ -252,35 +330,60 @@ ClientData.prototype.json = function() {
     console.log("ExtensionBridge.prototype.run"), this.extensionCallBack = parameters.completionFunction, 
     this.sendRequest();
 }, ExtensionBridge.prototype.sendRequest = function() {
-    "undefined" != typeof this.request && "undefined" != typeof this.extensionCallBack && (console.log("sending request"), 
+    "undefined" != typeof this.request && "undefined" != typeof this.extensionCallBack && (console.log("ExtensionBridge.prototype.sendRequest"), 
     console.log(this.request), this.extensionCallBack(this.request));
 }, ExtensionBridge.prototype.finalize = function(parameters) {
     console.log("ExtensionBridge.prototype.finalize"), this.sendResponse(parameters);
-}, MessageTypes = {
-    U2F_REGISTER_REQUEST: "u2f_register_request",
-    U2F_SIGN_REQUEST: "u2f_sign_request",
-    U2F_REGISTER_RESPONSE: "u2f_register_response",
-    U2F_SIGN_RESPONSE: "u2f_sign_response",
-    U2F_GET_API_VERSION_REQUEST: "u2f_get_api_version_request",
-    U2F_GET_API_VERSION_RESPONSE: "u2f_get_api_version_response"
-}, RegistrationRequest.KeyHandleSize = 32, RegistrationRequest.Version = "U2F_V2", 
-RegistrationRequest.prototype.response = function() {
+}, keyHandleBase = "iosSecurityKey#", pingerPonger = {
+    pingPong: function() {
+        this.whenReady_ = [], this.isReady_ = !1, this.send("ping", 1), this.receive("pong").then(function() {
+            this.isReady();
+        }.bind(this)), this.receive("ping").then(function() {
+            this.send("pong", 1), this.isReady();
+        }.bind(this));
+    },
+    findOrMakeTransferElt: function() {
+        this.transferElt = document.getElementById("u2f-transfer"), this.transferElt || (this.transferElt = document.createElement("span"), 
+        this.transferElt.id = "u2f-transfer", document.documentElement.appendChild(this.transferElt));
+    },
+    receive: function(name) {
+        return new Promise(function(resolve, reject) {
+            this.transferElt.addEventListener(name, function() {
+                console.log("pingerPonger receiving " + name), resolve(JSON.parse(this.transferElt.dataset[name]));
+            }.bind(this));
+        }.bind(this));
+    },
+    send: function(name, value) {
+        console.log("pingerPonger sending " + name), this.transferElt.dataset[name] = JSON.stringify(value), 
+        this.transferElt.dispatchEvent(new Event(name));
+    },
+    whenReady: function() {
+        return this.isReady_ ? Promise.resolve() : new Promise(function(resolve, reject) {
+            this.whenReady_.push(resolve);
+        }.bind(this));
+    },
+    isReady: function() {
+        this.isReady_ = !0;
+        var i;
+        for (i = 0; i < this.whenReady_.length; i++) this.whenReady_[i]();
+    }
+}, RegistrationRequest.Version = "U2F_V2", RegistrationRequest.prototype.response = function() {
     return this.registrationDataBytes().then(function(regData) {
         var response = {
             version: RegistrationRequest.Version,
             registrationData: B64_encode(regData),
             clientData: B64_encode(UTIL_StringToBytes(this.clientData().json()))
         };
-        return Promise.resolve(JSON.stringify(response));
+        return Promise.resolve(response);
     }.bind(this));
 }, RegistrationRequest.prototype.registrationDataBytes = function() {
     return this.extensionResponse().then(function(extResp) {
-        var bytes = [ 5 ].concat(UTIL_StringToBytes(extResp.publicKey), RegistrationRequest.KeyHandleSize, this.keyHandle, UTIL_StringToBytes(extResp.certificate), UTIL_StringToBytes(extResp.signature));
+        var bytes = [ 5 ].concat(UTIL_StringToBytes(extResp.publicKey), this.keyHandle.length, this.keyHandle, UTIL_StringToBytes(extResp.certificate), UTIL_StringToBytes(extResp.signature));
         return Promise.resolve(bytes);
     }.bind(this));
 }, RegistrationRequest.prototype.extensionResponse = function() {
-    var toSign = [ 0 ].concat(this.applicationParameter(), this.challengeParameter(), this.keyHandle), appIdHash = B64_encode(this.applicationParameter());
-    return this.enroller.register(appIdHash, toSign).then(function(resp) {
+    var toSign = [ 0 ].concat(this.applicationParameter(), this.challengeParameter(), this.keyHandle), b64KeyHandle = B64_encode(this.keyHandle);
+    return this.enroller.register(b64KeyHandle, toSign).then(function(resp) {
         return Promise.resolve(resp);
     });
 }, RegistrationRequest.prototype.applicationParameter = function() {
@@ -327,22 +430,24 @@ RegistrationRequest.prototype.response = function() {
     for (this._compress(this._buf), n = 0, i = 0; i < 8; ++i) for (j = 24; j >= 0; j -= 8) digest[n++] = this._chain[i] >> j & 255;
     return digest;
 }, SignRequest.USER_PRESENCE = 1, SignRequest.COUNTER = [ 0, 0, 0, 0 ], SignRequest.prototype.response = function() {
-    return this.signatureDataBytes().then(function(sigData) {
+    return validKeyHandleForAppId(this.keyHandle, this.appId) ? this.signatureDataBytes().then(function(sigData) {
         var response = {
             clientData: B64_encode(UTIL_StringToBytes(this.clientDataJson())),
-            keyHandle: B64_encode(UTIL_StringToBytes(this.keyHandle)),
+            keyHandle: B64_encode(this.keyHandle),
             signatureData: B64_encode(sigData)
         };
-        return Promise.resolve(JSON.stringify(response));
-    }.bind(this));
+        return Promise.resolve(response);
+    }.bind(this)) : (console.log("keyHandle appId mismatch"), Promise.resolve({
+        errorCode: 2
+    }));
 }, SignRequest.prototype.signatureDataBytes = function() {
     return this.signatureBytes().then(function(sig) {
         var bytes = [].concat(SignRequest.USER_PRESENCE, SignRequest.COUNTER, sig);
         return Promise.resolve(bytes);
     });
 }, SignRequest.prototype.signatureBytes = function() {
-    var toSign = [].concat(this.applicationParameter(), SignRequest.USER_PRESENCE, SignRequest.COUNTER, this.challengeParameter()), appIdHash = B64_encode(this.applicationParameter());
-    return this.signer.sign(appIdHash, toSign).then(function(sig) {
+    var toSign = [].concat(this.applicationParameter(), SignRequest.USER_PRESENCE, SignRequest.COUNTER, this.challengeParameter()), b64KeyHandle = B64_encode(this.keyHandle);
+    return this.signer.sign(b64KeyHandle, toSign).then(function(sig) {
         return Promise.resolve(UTIL_StringToBytes(sig));
     });
 }, SignRequest.prototype.clientDataJson = function() {
@@ -354,6 +459,17 @@ RegistrationRequest.prototype.response = function() {
 }, SignRequest.prototype.challengeParameter = function() {
     var d = new SHA256();
     return d.update(UTIL_StringToBytes(this.clientDataJson())), d.digest();
+}, TextFetcher.prototype.fetch = function(url, opt_method, opt_body) {}, XhrTextFetcher.prototype.fetch = function(url, opt_method, opt_body) {
+    return new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest(), method = opt_method || "GET";
+        xhr.open(method, url, !0), xhr.onloadend = function() {
+            return 200 != xhr.status ? void reject(xhr.status) : void resolve(xhr.responseText);
+        }, xhr.onerror = function() {
+            reject(404);
+        }, opt_body ? xhr.send(opt_body) : xhr.send();
+    });
+}, Timer.prototype.expired = function() {
+    return this._expired;
 }, TransferClient.prototype.sign = function(appId, toSign) {
     this.transfer.request = JSON.stringify({
         type: "sign",
@@ -396,6 +512,75 @@ RegistrationRequest.prototype.response = function() {
     return new Promise(function(resolve, reject) {
         this.transferElt.addEventListener(name, resolve);
     }.bind(this));
+}, u2fClient = function() {
+    this.findOrMakeTransferElt(), this.pingPong();
+}, u2fClient.prototype = pingerPonger, u2fClient.prototype.register = function(appId, registerRequests, registeredKeys, responseHandler) {
+    this.whenReady().then(function() {
+        this.receive("response").then(responseHandler), this.send("request", {
+            type: "register",
+            appId: appId,
+            registerRequests: registerRequests,
+            registeredKeys: registeredKeys
+        });
+    }.bind(this));
+}, u2fClient.prototype.sign = function(appId, challenge, registeredKeys, responseHandler) {
+    this.whenReady().then(function() {
+        this.receive("response").then(responseHandler), this.send("request", {
+            type: "sign",
+            appId: appId,
+            challenge: challenge,
+            registeredKeys: registeredKeys
+        });
+    }.bind(this));
+}, u2fServer = function() {
+    this.findOrMakeTransferElt(), this.receive("request").then(this.handleRequest.bind(this)), 
+    this.pingPong();
+}, u2fServer.prototype = pingerPonger, u2fServer.prototype.handleRequest = function(req) {
+    var type = req.type, appId = req.appId, challenge = req.challenge, registeredKeys = req.registeredKeys, registerRequests = req.registerRequests;
+    this.timer = new Timer(30), this.validAppId(appId).then(function(valid) {
+        if (!valid) return console.log("error - bad appId"), void this.send("response", {
+            errorCode: 2
+        });
+        switch (type) {
+          case "register":
+            this.handleRegisterRequest(appId, registerRequests);
+            break;
+
+          case "sign":
+            this.handleSignRequest(appId, challenge, registeredKeys);
+            break;
+
+          default:
+            console.log("error - unknown request type"), this.send("response", {
+                errorCode: 2
+            });
+        }
+    }.bind(this)).catch(function(err) {
+        console.log("error checking appId"), console.log(err), this.send("response", {
+            errorCode: 2
+        });
+    }.bind(this));
+}, u2fServer.prototype.validAppId = function(appId) {
+    var textFetcher = new XhrTextFetcher(), xhrAppIdCheckerFactory = new XhrAppIdCheckerFactory(textFetcher), appIdChecker = xhrAppIdCheckerFactory.create();
+    return appIdChecker.checkAppIds(this.timer, window.location.origin, [ appId ], !0);
+}, u2fServer.prototype.handleSignRequest = function(appId, challenge, registeredKeys) {
+    var i, registeredKey, keyHandle, signRequest;
+    for (i = 0; i < registeredKeys.length; i++) if (registeredKey = registeredKeys[i], 
+    keyHandle = B64_decode(registeredKey.keyHandle), validKeyHandleForAppId(keyHandle, appId)) return signRequest = new SignRequest(extensionBridge, appId, challenge, keyHandle), 
+    signRequest.response().then(function(resp) {
+        this.send("response", resp);
+    }.bind(this));
+    console.log("error - no valid keyIds for appId"), this.send("response", {
+        errorCode: 2
+    });
+}, u2fServer.prototype.handleRegisterRequest = function(appId, registerRequests) {
+    if (1 != registerRequests.length) return console.log("error - multiple registerRequests"), 
+    this.send("response", {
+        errorCode: 2
+    });
+    var registerRequest = new RegistrationRequest(extensionBridge, appId, registerRequests[0].challenge);
+    registerRequest.response().then(function(resp) {
+        this.send("response", resp);
+    }.bind(this));
 }, UTIL_ASN_INT = 2, UTIL_ASN_SEQUENCE = 48, UTIL_events = [], UTIL_max_events = 500, 
-extensionBridge = new ExtensionBridge(), challengeSize = 32, keyHandleSize = 32, 
-u2fRegister(), ExtensionPreprocessingJS = extensionBridge;
+extensionBridge = new ExtensionBridge(), server = new u2fServer(), ExtensionPreprocessingJS = extensionBridge;

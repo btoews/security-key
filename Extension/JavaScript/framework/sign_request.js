@@ -1,7 +1,7 @@
 // signer    - Function
 // appId     - String
 // challenge - String
-// keyHandle - String
+// keyHandle - Bytes
 function SignRequest(signer, appId, challenge, keyHandle) {
   this.signer = signer;
   this.challenge = challenge;
@@ -13,14 +13,19 @@ SignRequest.USER_PRESENCE = 1;
 SignRequest.COUNTER = [0, 0, 0, 0];
 
 SignRequest.prototype.response = function() {
+  if(!validKeyHandleForAppId(this.keyHandle, this.appId)) {
+      console.log('keyHandle appId mismatch');
+      return Promise.resolve({'errorCode': 2});
+  }
+
   return this.signatureDataBytes().then(function(sigData) {
     var response = {
       'clientData': B64_encode(UTIL_StringToBytes(this.clientDataJson())),
-      'keyHandle': B64_encode(UTIL_StringToBytes(this.keyHandle)),
+      'keyHandle': B64_encode(this.keyHandle),
       'signatureData': B64_encode(sigData)
     };
 
-    return Promise.resolve(JSON.stringify(response));
+    return Promise.resolve(response);
   }.bind(this));
 };
 
@@ -44,8 +49,8 @@ SignRequest.prototype.signatureBytes = function() {
     this.challengeParameter()
   );
 
-  var appIdHash = B64_encode(this.applicationParameter());
-  return this.signer.sign(appIdHash, toSign).then(function(sig) {
+  var b64KeyHandle = B64_encode(this.keyHandle);
+  return this.signer.sign(b64KeyHandle, toSign).then(function(sig) {
     return Promise.resolve(UTIL_StringToBytes(sig));
   });
 };

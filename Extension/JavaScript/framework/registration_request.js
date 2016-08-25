@@ -2,12 +2,9 @@ function RegistrationRequest(enroller, appId, challenge) {
   this.enroller = enroller;
   this.appId = appId;
   this.challenge = challenge;
-  this.keyHandle = Array.from(window.crypto.getRandomValues(
-    new Uint8Array(RegistrationRequest.KeyHandleSize)
-  ));
+  this.keyHandle = keyHandleFromAppId(appId);
 }
 
-RegistrationRequest.KeyHandleSize = 32;
 RegistrationRequest.Version = 'U2F_V2';
 
 RegistrationRequest.prototype.response = function() {
@@ -18,7 +15,7 @@ RegistrationRequest.prototype.response = function() {
       'clientData': B64_encode(UTIL_StringToBytes(this.clientData().json()))
     };
 
-    return Promise.resolve(JSON.stringify(response));
+    return Promise.resolve(response);
   }.bind(this));
 };
 
@@ -26,7 +23,7 @@ RegistrationRequest.prototype.registrationDataBytes = function() {
   return this.extensionResponse().then(function(extResp) {
     var bytes = [5].concat(
       UTIL_StringToBytes(extResp.publicKey),
-      RegistrationRequest.KeyHandleSize,
+      this.keyHandle.length,
       this.keyHandle,
       UTIL_StringToBytes(extResp.certificate),
       UTIL_StringToBytes(extResp.signature)
@@ -44,8 +41,8 @@ RegistrationRequest.prototype.extensionResponse = function() {
     // publicKey appended by extension
   );
 
-  var appIdHash = B64_encode(this.applicationParameter());
-  return this.enroller.register(appIdHash, toSign).then(function(resp) {
+  var b64KeyHandle = B64_encode(this.keyHandle);
+  return this.enroller.register(b64KeyHandle, toSign).then(function(resp) {
     return Promise.resolve(resp);
   });
 };

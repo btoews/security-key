@@ -199,10 +199,10 @@
   uint8_t signature[256] = { 0 };
   size_t signatureLength = sizeof(signature);
 
-    OSStatus status = SecKeyRawSign([self lookupPrivateKeyRef:keyName], kSecPaddingPKCS1, digestData, digestLength, signature, &signatureLength);
+    OSStatus status = SecKeyRawSign([self lookupPrivateKeyRef:keyName], kSecPaddingPKCS1SHA256, digestData, digestLength, signature, &signatureLength);
 
   if (status == errSecSuccess) {
-    completion([NSData dataWithBytes:signature length:signatureLength], nil);
+    completion([NSData dataWithBytes:&signature length:signatureLength], nil);
   }
   else
   {
