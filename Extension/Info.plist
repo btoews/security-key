@@ -8,6 +8,10 @@
 	<string>Extension</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIcons</key>
+	<dict/>
+	<key>CFBundleIcons~ipad</key>
+	<dict/>
 	<key>CFBundleIdentifier</key>
 	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 	<key>CFBundleInfoDictionaryVersion</key>
@@ -29,15 +33,15 @@
 			<key>NSExtensionActivationRule</key>
 			<dict>
 				<key>NSExtensionActivationSupportsWebPageWithMaxCount</key>
-				<string>1</string>
+				<integer>1</integer>
 			</dict>
 			<key>NSExtensionJavaScriptPreprocessingFile</key>
 			<string>Action</string>
 		</dict>
-		<key>NSExtensionPrincipalClass</key>
-		<string>$(PRODUCT_MODULE_NAME).ActionRequestHandler</string>
 		<key>NSExtensionPointIdentifier</key>
 		<string>com.apple.services</string>
+		<key>NSExtensionPrincipalClass</key>
+		<string>$(PRODUCT_MODULE_NAME).ActionRequestHandler</string>
 	</dict>
 </dict>
 </plist>

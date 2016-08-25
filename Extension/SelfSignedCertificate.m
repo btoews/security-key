@@ -83,7 +83,6 @@
 {
     unsigned char* buf = NULL;
     unsigned int len = i2d_X509(self.x509, &buf);
-//    return [NSString stringWithCString:(const char*)buf encoding:NSASCIIStringEncoding];
     return [[NSString alloc] initWithBytes: buf length: len encoding:NSASCIIStringEncoding];
 }
 
@@ -95,16 +94,19 @@
     unsigned int len;
     
     if (EVP_SignInit(&ctx, EVP_sha256()) != 1) {
+        free(sig);
         printf("failed to init signing context\n");
         return nil;
     };
     
     if (EVP_SignUpdate(&ctx, cmsg, (unsigned int)[msg length]) != 1) {
+        free(sig);
         printf("failed to update digest\n");
         return nil;
     }
     
     if (EVP_SignFinal(&ctx, sig, &len, self.pkey) != 1) {
+        free(sig);
         printf("failed to finalize digest\n");
         return nil;
     }

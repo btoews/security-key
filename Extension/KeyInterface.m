@@ -19,6 +19,7 @@
 //
 
 #import "KeyInterface.h"
+#import <CommonCrypto/CommonCrypto.h>
 
 #define newCFDict CFDictionaryCreateMutable(kCFAllocatorDefault, 0, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks)
 
@@ -193,16 +194,28 @@
 }
 
 + (void) generateSignatureForData:(NSData *)inputData withKeyName:(NSString*)keyName withCompletion:(void(^)(NSData*, NSError*))completion {
-  const uint8_t * const digestData = [inputData bytes];
-  size_t digestLength = [inputData length];
-
+  SecKeyRef key = [self lookupPrivateKeyRef:keyName];
+    
   uint8_t signature[256] = { 0 };
   size_t signatureLength = sizeof(signature);
 
-    OSStatus status = SecKeyRawSign([self lookupPrivateKeyRef:keyName], kSecPaddingPKCS1SHA256, digestData, digestLength, signature, &signatureLength);
+
+  size_t hashBytesSize = CC_SHA256_DIGEST_LENGTH;
+  uint8_t* hashBytes = malloc(hashBytesSize);
+  if (!CC_SHA256([inputData bytes], (CC_LONG)[inputData length], hashBytes)) {
+    free(hashBytes);
+    NSError *error = [NSError errorWithDomain:@"SecKeyError" code:1 userInfo:nil];
+    completion(nil, error);
+    return;
+  }
+
+  OSStatus status = SecKeyRawSign(key, kSecPaddingPKCS1, hashBytes, hashBytesSize, signature, &signatureLength);
+  free(hashBytes);
 
   if (status == errSecSuccess) {
-    completion([NSData dataWithBytes:&signature length:signatureLength], nil);
+    NSData* signedHash = [NSData dataWithBytes:signature length:signatureLength];
+      
+    completion(signedHash, nil);
   }
   else
   {
