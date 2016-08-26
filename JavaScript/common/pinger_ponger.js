@@ -17,26 +17,18 @@ var pingerPonger = {
     }.bind(this));
   },
 
-  findOrMakeTransferElt: function() {
-    this.transferElt = document.getElementById('u2f-transfer');
-    if (!this.transferElt) {
-      this.transferElt = document.createElement('span');
-      this.transferElt.id = 'u2f-transfer';
-      document.documentElement.appendChild(this.transferElt);
-    }
-  },
-
   receive: function(name) {
     return new Promise(function(resolve, reject) {
-      this.transferElt.addEventListener(name, function() {
-        resolve(JSON.parse(this.transferElt.dataset[name]));
-      }.bind(this));
-    }.bind(this));
+      window.addEventListener('u2f-' + name, function(e) {
+        console.log('receiving ' + name);
+        resolve(e.detail);
+      });
+    });
   },
 
   send: function(name, value) {
-    this.transferElt.dataset[name] = JSON.stringify(value);
-    this.transferElt.dispatchEvent(new Event(name));
+    console.log('sending ' + name + ': ' + JSON.stringify(value));
+    window.dispatchEvent(new CustomEvent('u2f-' + name, {detail: value}));
   },
 
   whenReady: function() {

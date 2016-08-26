@@ -2,33 +2,28 @@ var pingerPonger = {
     pingPong: function() {
         this.whenReady_ = [];
         this.isReady_ = false;
-        this.send("ping", 1);
-        this.receive("pong").then(function() {
+        this.send("u2f-ping", 1);
+        this.receive("u2f-pong").then(function() {
             this.isReady();
         }.bind(this));
-        this.receive("ping").then(function() {
-            this.send("pong", 1);
+        this.receive("u2f-ping").then(function() {
+            this.send("u2f-pong", 1);
             this.isReady();
         }.bind(this));
-    },
-    findOrMakeTransferElt: function() {
-        this.transferElt = document.getElementById("u2f-transfer");
-        if (!this.transferElt) {
-            this.transferElt = document.createElement("span");
-            this.transferElt.id = "u2f-transfer";
-            document.documentElement.appendChild(this.transferElt);
-        }
     },
     receive: function(name) {
         return new Promise(function(resolve, reject) {
-            this.transferElt.addEventListener(name, function() {
-                resolve(JSON.parse(this.transferElt.dataset[name]));
-            }.bind(this));
-        }.bind(this));
+            window.addEventListener(name, function(e) {
+                console.log("receiving " + name);
+                resolve(e.detail);
+            });
+        });
     },
     send: function(name, value) {
-        this.transferElt.dataset[name] = JSON.stringify(value);
-        this.transferElt.dispatchEvent(new Event(name));
+        console.log("sending " + name + ": " + JSON.stringify(value));
+        window.dispatchEvent(new CustomEvent(name, {
+            detail: value
+        }));
     },
     whenReady: function() {
         if (this.isReady_) {
@@ -814,109 +809,8 @@ Timer.prototype.expired = function() {
     return this._expired;
 };
 
-function TransferClient() {
-    this.transferElt = document.getElementById("js-transfer");
-    this.transfer = this.transferElt.dataset;
-    this.serverReady = false;
-    this.reqReady = false;
-    this.eventFired("serverPong").then(function() {
-        this.serverReady = true;
-        this.sendRequestIfReady();
-    }.bind(self));
-    this.eventFired("serverPing").then(function() {
-        this.transferElt.dispatchEvent(new Event("clientPong"));
-        this.serverReady = true;
-        this.sendRequestIfReady();
-    }.bind(this));
-    this.transferElt.dispatchEvent(new Event("clientPing"));
-}
-
-TransferClient.prototype.sign = function(appId, toSign) {
-    this.transfer.request = JSON.stringify({
-        type: "sign",
-        appId: appId,
-        toSign: JSON.stringify(toSign)
-    });
-    var promise = this.eventFired("response").then(function() {
-        var parsed = JSON.parse(this.transfer.response);
-        return Promise.resolve(parsed.signature);
-    }.bind(this));
-    this.reqReady = true;
-    this.sendRequestIfReady();
-    return promise;
-};
-
-TransferClient.prototype.register = function(appId, toSign) {
-    this.transfer.request = JSON.stringify({
-        type: "register",
-        appId: appId,
-        toSign: JSON.stringify(toSign)
-    });
-    var promise = this.eventFired("response").then(function() {
-        var parsed = JSON.parse(this.transfer.response);
-        return Promise.resolve(parsed);
-    }.bind(this));
-    this.reqReady = true;
-    this.sendRequestIfReady();
-    return promise;
-};
-
-TransferClient.prototype.eventFired = function(name) {
-    return new Promise(function(resolve, reject) {
-        this.transferElt.addEventListener(name, resolve);
-    }.bind(this));
-};
-
-TransferClient.prototype.sendRequestIfReady = function() {
-    if (this.serverReady && this.reqReady) {
-        this.serverReady = this.reqReady = false;
-        this.transferElt.dispatchEvent(new Event("request"));
-    }
-};
-
-function TransferServer() {
-    this.transferElt = document.getElementById("js-transfer");
-    this.transfer = this.transferElt.dataset;
-    this.extReady = false;
-    this.clientReady = false;
-    this.eventFired("request").then(function() {
-        this.clientReady = true;
-        this.sendRequestIfReady();
-    }.bind(this));
-    this.eventFired("clientPing").then(function() {
-        this.transferElt.dispatchEvent(new Event("serverPong"));
-    }.bind(this));
-    this.transferElt.dispatchEvent(new Event("serverPing"));
-}
-
-TransferServer.prototype.run = function(parameters) {
-    this.extensionCallBack = parameters.completionFunction;
-    this.extReady = true;
-    this.sendRequestIfReady();
-};
-
-TransferServer.prototype.finalize = function(parameters) {
-    this.transfer.response = JSON.stringify(parameters);
-    this.transferElt.dispatchEvent(new Event("response"));
-};
-
-TransferServer.prototype.sendRequestIfReady = function() {
-    if (this.extReady && this.clientReady) {
-        this.extReady = this.clientReady = false;
-        var parsed = JSON.parse(this.transfer.request);
-        this.extensionCallBack(parsed);
-    }
-};
-
-TransferServer.prototype.eventFired = function(name) {
-    return new Promise(function(resolve, reject) {
-        this.transferElt.addEventListener(name, resolve);
-    }.bind(this));
-};
-
 var u2fServer = function() {
-    this.findOrMakeTransferElt();
-    this.receive("request").then(this.handleRequest.bind(this));
+    this.receive("u2f-request").then(this.handleRequest.bind(this));
     this.pingPong();
 };
 
@@ -932,7 +826,7 @@ u2fServer.prototype.handleRequest = function(req) {
     this.validAppId(appId).then(function(valid) {
         if (!valid) {
             console.log("error - bad appId");
-            this.send("response", {
+            this.send("u2f-response", {
                 errorCode: 2
             });
             return;
@@ -948,14 +842,14 @@ u2fServer.prototype.handleRequest = function(req) {
 
           default:
             console.log("error - unknown request type");
-            this.send("response", {
+            this.send("u2f-response", {
                 errorCode: 2
             });
         }
     }.bind(this)).catch(function(err) {
         console.log("error checking appId");
         console.log(err);
-        this.send("response", {
+        this.send("u2f-response", {
             errorCode: 2
         });
     }.bind(this));
@@ -976,12 +870,12 @@ u2fServer.prototype.handleSignRequest = function(appId, challenge, registeredKey
         if (validKeyHandleForAppId(keyHandle, appId)) {
             var signRequest = new SignRequest(extensionBridge, appId, challenge, keyHandle);
             return signRequest.response().then(function(resp) {
-                this.send("response", resp);
+                this.send("u2f-response", resp);
             }.bind(this));
         }
     }
     console.log("error - no valid keyIds for appId");
-    this.send("response", {
+    this.send("u2f-response", {
         errorCode: 2
     });
 };
@@ -989,13 +883,13 @@ u2fServer.prototype.handleSignRequest = function(appId, challenge, registeredKey
 u2fServer.prototype.handleRegisterRequest = function(appId, registerRequests) {
     if (registerRequests.length != 1) {
         console.log("error - multiple registerRequests");
-        return this.send("response", {
+        return this.send("u2f-response", {
             errorCode: 2
         });
     } else {
         var registerRequest = new RegistrationRequest(extensionBridge, appId, registerRequests[0].challenge);
         registerRequest.response().then(function(resp) {
-            this.send("response", resp);
+            this.send("u2f-response", resp);
         }.bind(this));
     }
 };

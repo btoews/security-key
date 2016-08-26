@@ -3,33 +3,28 @@
         pingPong: function() {
             this.whenReady_ = [];
             this.isReady_ = false;
-            this.send("ping", 1);
-            this.receive("pong").then(function() {
+            this.send("u2f-ping", 1);
+            this.receive("u2f-pong").then(function() {
                 this.isReady();
             }.bind(this));
-            this.receive("ping").then(function() {
-                this.send("pong", 1);
+            this.receive("u2f-ping").then(function() {
+                this.send("u2f-pong", 1);
                 this.isReady();
             }.bind(this));
-        },
-        findOrMakeTransferElt: function() {
-            this.transferElt = document.getElementById("u2f-transfer");
-            if (!this.transferElt) {
-                this.transferElt = document.createElement("span");
-                this.transferElt.id = "u2f-transfer";
-                document.documentElement.appendChild(this.transferElt);
-            }
         },
         receive: function(name) {
             return new Promise(function(resolve, reject) {
-                this.transferElt.addEventListener(name, function() {
-                    resolve(JSON.parse(this.transferElt.dataset[name]));
-                }.bind(this));
-            }.bind(this));
+                window.addEventListener(name, function(e) {
+                    console.log("receiving " + name);
+                    resolve(e.detail);
+                });
+            });
         },
         send: function(name, value) {
-            this.transferElt.dataset[name] = JSON.stringify(value);
-            this.transferElt.dispatchEvent(new Event(name));
+            console.log("sending " + name + ": " + JSON.stringify(value));
+            window.dispatchEvent(new CustomEvent(name, {
+                detail: value
+            }));
         },
         whenReady: function() {
             if (this.isReady_) {
@@ -49,14 +44,13 @@
         }
     };
     var u2fClient = function() {
-        this.findOrMakeTransferElt();
         this.pingPong();
     };
     u2fClient.prototype = pingerPonger;
     u2fClient.prototype.register = function(appId, registerRequests, registeredKeys, responseHandler) {
         this.whenReady().then(function() {
-            this.receive("response").then(responseHandler);
-            this.send("request", {
+            this.receive("u2f-response").then(responseHandler);
+            this.send("u2f-request", {
                 type: "register",
                 appId: appId,
                 registerRequests: registerRequests,
@@ -66,8 +60,8 @@
     };
     u2fClient.prototype.sign = function(appId, challenge, registeredKeys, responseHandler) {
         this.whenReady().then(function() {
-            this.receive("response").then(responseHandler);
-            this.send("request", {
+            this.receive("u2f-response").then(responseHandler);
+            this.send("u2f-request", {
                 type: "sign",
                 appId: appId,
                 challenge: challenge,

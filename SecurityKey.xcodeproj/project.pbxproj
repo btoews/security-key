@@ -249,10 +249,10 @@
 			files = (
 			);
 			inputPaths = (
-				"$(SRCROOT)/JavaScript/common/",
-				"$(SRCROOT)/JavaScript/extension/",
+				"$(SRCROOT)/JavaScript/common",
+				"$(SRCROOT)/JavaScript/extension",
 				"$(SRCROOT)/JavaScript/extension.js",
-				"$(SRCROOT)/JavaScript/client/",
+				"$(SRCROOT)/JavaScript/client",
 				"$(SRCROOT)/JavaScript/client.js",
 			);
 			outputPaths = (

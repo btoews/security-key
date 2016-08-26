@@ -1,8 +1,6 @@
 // Copyright (c) 2016 GitHub, inc.
 
 var u2fServer = function() {
-  this.findOrMakeTransferElt();
-
   this.receive('request').then(this.handleRequest.bind(this));
 
   this.pingPong();

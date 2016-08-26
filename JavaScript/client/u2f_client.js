@@ -1,6 +1,6 @@
 // Copyright (c) 2016 GitHub, inc.
 
-var u2fClient = function() { this.findOrMakeTransferElt(); this.pingPong(); };
+var u2fClient = function() { this.pingPong(); };
 
 u2fClient.prototype = pingerPonger;
 
