@@ -15,6 +15,7 @@
 		F739A2CB1D63AF7F001F025C /* ActionRequestHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = F739A2CA1D63AF7F001F025C /* ActionRequestHandler.swift */; };
 		F739A2D21D63AF7F001F025C /* Extension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = F739A2C81D63AF7F001F025C /* Extension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		F786B2581D66145F009EF3D6 /* Action.js in Resources */ = {isa = PBXBuildFile; fileRef = F786B2571D66145F009EF3D6 /* Action.js */; };
+		F7AC0F391D70A95500D0A131 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F739A2B91D63AE78001F025C /* Assets.xcassets */; };
 		F7B6E9EB1D67BD2000B59A39 /* KeyInterface.m in Sources */ = {isa = PBXBuildFile; fileRef = F7B6E9EA1D67BD2000B59A39 /* KeyInterface.m */; };
 		F7B6E9EF1D67BDE800B59A39 /* openssl.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F7B6E9EE1D67BDE800B59A39 /* openssl.framework */; };
 		F7B6E9F71D67C83F00B59A39 /* SelfSignedCertificate.m in Sources */ = {isa = PBXBuildFile; fileRef = F7B6E9F61D67C83F00B59A39 /* SelfSignedCertificate.m */; };
@@ -45,7 +46,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		F739A2AF1D63AE78001F025C /* SecurityKey.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SecurityKey.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		F739A2AF1D63AE78001F025C /* Security Key.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Security Key.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		F739A2B21D63AE78001F025C /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		F739A2B41D63AE78001F025C /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
 		F739A2B71D63AE78001F025C /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
@@ -96,7 +97,7 @@
 		F739A2B01D63AE78001F025C /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				F739A2AF1D63AE78001F025C /* SecurityKey.app */,
+				F739A2AF1D63AE78001F025C /* Security Key.app */,
 				F739A2C81D63AF7F001F025C /* Extension.appex */,
 			);
 			name = Products;
@@ -149,7 +150,7 @@
 			);
 			name = SecurityKey;
 			productName = SecurityKey;
-			productReference = F739A2AF1D63AE78001F025C /* SecurityKey.app */;
+			productReference = F739A2AF1D63AE78001F025C /* Security Key.app */;
 			productType = "com.apple.product-type.application";
 		};
 		F739A2C71D63AF7F001F025C /* Extension */ = {
@@ -234,6 +235,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F7AC0F391D70A95500D0A131 /* Assets.xcassets in Resources */,
 				F786B2581D66145F009EF3D6 /* Action.js in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -400,7 +402,7 @@
 				INFOPLIST_FILE = SecurityKey/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.github.SecurityKey;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = "Security Key";
 			};
 			name = Debug;
 		};
@@ -413,7 +415,7 @@
 				INFOPLIST_FILE = SecurityKey/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.github.SecurityKey;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = "Security Key";
 			};
 			name = Release;
 		};
