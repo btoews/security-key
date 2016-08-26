@@ -15,10 +15,10 @@
 		F739A2CB1D63AF7F001F025C /* ActionRequestHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = F739A2CA1D63AF7F001F025C /* ActionRequestHandler.swift */; };
 		F739A2D21D63AF7F001F025C /* Extension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = F739A2C81D63AF7F001F025C /* Extension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		F7AC0F391D70A95500D0A131 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F739A2B91D63AE78001F025C /* Assets.xcassets */; };
-		F7B6E9EB1D67BD2000B59A39 /* KeyInterface.m in Sources */ = {isa = PBXBuildFile; fileRef = F7B6E9EA1D67BD2000B59A39 /* KeyInterface.m */; };
 		F7B6E9EF1D67BDE800B59A39 /* openssl.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F7B6E9EE1D67BDE800B59A39 /* openssl.framework */; };
 		F7B6E9F71D67C83F00B59A39 /* SelfSignedCertificate.m in Sources */ = {isa = PBXBuildFile; fileRef = F7B6E9F61D67C83F00B59A39 /* SelfSignedCertificate.m */; };
 		F7C01B201D70CFE000FF2CA4 /* Action.js in Resources */ = {isa = PBXBuildFile; fileRef = F7C01B1F1D70CFE000FF2CA4 /* Action.js */; };
+		F7C01B251D70DCAC00FF2CA4 /* KeyInterface.m in Sources */ = {isa = PBXBuildFile; fileRef = F7C01B241D70DCAC00FF2CA4 /* KeyInterface.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -57,12 +57,12 @@
 		F739A2CA1D63AF7F001F025C /* ActionRequestHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionRequestHandler.swift; sourceTree = "<group>"; };
 		F739A2CF1D63AF7F001F025C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		F739A3151D64B861001F025C /* Extension-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Extension-Bridging-Header.h"; sourceTree = "<group>"; };
-		F7B6E9E91D67BD2000B59A39 /* KeyInterface.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = KeyInterface.h; sourceTree = "<group>"; };
-		F7B6E9EA1D67BD2000B59A39 /* KeyInterface.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = KeyInterface.m; sourceTree = "<group>"; };
 		F7B6E9EE1D67BDE800B59A39 /* openssl.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = openssl.framework; sourceTree = "<group>"; };
 		F7B6E9F61D67C83F00B59A39 /* SelfSignedCertificate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SelfSignedCertificate.m; sourceTree = "<group>"; };
 		F7B6E9F81D67C8E900B59A39 /* SelfSignedCertificate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SelfSignedCertificate.h; sourceTree = "<group>"; };
 		F7C01B1F1D70CFE000FF2CA4 /* Action.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; path = Action.js; sourceTree = "<group>"; };
+		F7C01B231D70DCAC00FF2CA4 /* KeyInterface.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = KeyInterface.h; path = KeyInterface/KeyInterface.h; sourceTree = "<group>"; };
+		F7C01B241D70DCAC00FF2CA4 /* KeyInterface.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = KeyInterface.m; path = KeyInterface/KeyInterface.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -119,9 +119,9 @@
 		F739A2C91D63AF7F001F025C /* Extension */ = {
 			isa = PBXGroup;
 			children = (
+				F7C01B231D70DCAC00FF2CA4 /* KeyInterface.h */,
+				F7C01B241D70DCAC00FF2CA4 /* KeyInterface.m */,
 				F7C01B1F1D70CFE000FF2CA4 /* Action.js */,
-				F7B6E9E91D67BD2000B59A39 /* KeyInterface.h */,
-				F7B6E9EA1D67BD2000B59A39 /* KeyInterface.m */,
 				F739A2CA1D63AF7F001F025C /* ActionRequestHandler.swift */,
 				F739A2CF1D63AF7F001F025C /* Info.plist */,
 				F739A3151D64B861001F025C /* Extension-Bridging-Header.h */,
@@ -281,7 +281,7 @@
 			files = (
 				F7B6E9F71D67C83F00B59A39 /* SelfSignedCertificate.m in Sources */,
 				F739A2CB1D63AF7F001F025C /* ActionRequestHandler.swift in Sources */,
-				F7B6E9EB1D67BD2000B59A39 /* KeyInterface.m in Sources */,
+				F7C01B251D70DCAC00FF2CA4 /* KeyInterface.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
