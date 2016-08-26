@@ -14,11 +14,11 @@
 		F739A2BD1D63AE78001F025C /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = F739A2BB1D63AE78001F025C /* LaunchScreen.storyboard */; };
 		F739A2CB1D63AF7F001F025C /* ActionRequestHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = F739A2CA1D63AF7F001F025C /* ActionRequestHandler.swift */; };
 		F739A2D21D63AF7F001F025C /* Extension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = F739A2C81D63AF7F001F025C /* Extension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		F786B2581D66145F009EF3D6 /* Action.js in Resources */ = {isa = PBXBuildFile; fileRef = F786B2571D66145F009EF3D6 /* Action.js */; };
 		F7AC0F391D70A95500D0A131 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F739A2B91D63AE78001F025C /* Assets.xcassets */; };
 		F7B6E9EB1D67BD2000B59A39 /* KeyInterface.m in Sources */ = {isa = PBXBuildFile; fileRef = F7B6E9EA1D67BD2000B59A39 /* KeyInterface.m */; };
 		F7B6E9EF1D67BDE800B59A39 /* openssl.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F7B6E9EE1D67BDE800B59A39 /* openssl.framework */; };
 		F7B6E9F71D67C83F00B59A39 /* SelfSignedCertificate.m in Sources */ = {isa = PBXBuildFile; fileRef = F7B6E9F61D67C83F00B59A39 /* SelfSignedCertificate.m */; };
+		F7C01B201D70CFE000FF2CA4 /* Action.js in Resources */ = {isa = PBXBuildFile; fileRef = F7C01B1F1D70CFE000FF2CA4 /* Action.js */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -57,12 +57,12 @@
 		F739A2CA1D63AF7F001F025C /* ActionRequestHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionRequestHandler.swift; sourceTree = "<group>"; };
 		F739A2CF1D63AF7F001F025C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		F739A3151D64B861001F025C /* Extension-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Extension-Bridging-Header.h"; sourceTree = "<group>"; };
-		F786B2571D66145F009EF3D6 /* Action.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; path = Action.js; sourceTree = "<group>"; };
 		F7B6E9E91D67BD2000B59A39 /* KeyInterface.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = KeyInterface.h; sourceTree = "<group>"; };
 		F7B6E9EA1D67BD2000B59A39 /* KeyInterface.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = KeyInterface.m; sourceTree = "<group>"; };
 		F7B6E9EE1D67BDE800B59A39 /* openssl.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = openssl.framework; sourceTree = "<group>"; };
 		F7B6E9F61D67C83F00B59A39 /* SelfSignedCertificate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SelfSignedCertificate.m; sourceTree = "<group>"; };
 		F7B6E9F81D67C8E900B59A39 /* SelfSignedCertificate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SelfSignedCertificate.h; sourceTree = "<group>"; };
+		F7C01B1F1D70CFE000FF2CA4 /* Action.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; path = Action.js; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -119,9 +119,9 @@
 		F739A2C91D63AF7F001F025C /* Extension */ = {
 			isa = PBXGroup;
 			children = (
+				F7C01B1F1D70CFE000FF2CA4 /* Action.js */,
 				F7B6E9E91D67BD2000B59A39 /* KeyInterface.h */,
 				F7B6E9EA1D67BD2000B59A39 /* KeyInterface.m */,
-				F786B2571D66145F009EF3D6 /* Action.js */,
 				F739A2CA1D63AF7F001F025C /* ActionRequestHandler.swift */,
 				F739A2CF1D63AF7F001F025C /* Info.plist */,
 				F739A3151D64B861001F025C /* Extension-Bridging-Header.h */,
@@ -235,8 +235,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F7C01B201D70CFE000FF2CA4 /* Action.js in Resources */,
 				F7AC0F391D70A95500D0A131 /* Assets.xcassets in Resources */,
-				F786B2581D66145F009EF3D6 /* Action.js in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -249,16 +249,19 @@
 			files = (
 			);
 			inputPaths = (
-				"$(SRCROOT)/Extension/JavaScript/framework",
-				"$(SRCROOT)/Extension/JavaScript/main.js",
-				"$(SRCROOT)/Extension/JavaScript/framework/pinger_ponger.js",
-				"$(SRCROOT)/Extension/JavaScript/framework/u2f_client.js",
+				"$(SRCROOT)/JavaScript/common/",
+				"$(SRCROOT)/JavaScript/extension/",
+				"$(SRCROOT)/JavaScript/extension.js",
+				"$(SRCROOT)/JavaScript/client/",
+				"$(SRCROOT)/JavaScript/client.js",
 			);
 			outputPaths = (
+				"$(SRCROOT)/Extension/Action.js",
+				"$(SRCROOT)/u2f_polyfill.js",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "if ! which brew &> /dev/null; then\n  echo \"You must have homebrew installed to build this project\"\n  exit 1\nfi\n\nbrew bundle\nnpm install\n\n# List main.js after the cryptotoken code so vars get defined before we use them.\nfind ${SCRIPT_INPUT_FILE_0} -type f | xargs -J % ./node_modules/.bin/uglifyjs % $SCRIPT_INPUT_FILE_1 -b -c hoist_vars > Extension/Action.js\n\n./node_modules/.bin/uglifyjs $SCRIPT_INPUT_FILE_2 $SCRIPT_INPUT_FILE_3 -b > u2f_polyfill.js\n\n# ./node_modules/.bin/uglifyjs $SCRIPT_INPUT_FILE_0 $SCRIPT_INPUT_FILE_1 -b -c hoist_vars > Extension/Action.js";
+			shellScript = "if ! which brew &> /dev/null; then\n  echo \"You must have homebrew installed to build this project\"\n  exit 1\nfi\n\nbrew bundle\nnpm install\n\n# Action.js\nfind $SCRIPT_INPUT_FILE_0 $SCRIPT_INPUT_FILE_1 -type f | xargs -J % ./node_modules/.bin/uglifyjs % $SCRIPT_INPUT_FILE_2 -b > $SCRIPT_OUTPUT_FILE_0\n\n# u2f_pollyfill.js\nfind $SCRIPT_INPUT_FILE_0 $SCRIPT_INPUT_FILE_3 -type f | xargs -J % ./node_modules/.bin/uglifyjs % $SCRIPT_INPUT_FILE_4 -b --wrap --bare-returns > $SCRIPT_OUTPUT_FILE_1";
 		};
 /* End PBXShellScriptBuildPhase section */
 

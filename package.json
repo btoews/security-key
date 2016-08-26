@@ -1,7 +1,22 @@
 {
-  "name": "security-key",
+  "name": "ios-security-key",
+  "main": "u2f_polyfill.js",
   "version": "0.0.1",
-  "dependencies": [
+  "authors": [
+    "mastahyeti"
+  ],
+  "description": "iOS polyfill for FIDO U2F",
+  "keywords": [
+    "fido",
+    "u2f",
+    "iOS"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mastahyeti/security-key"
+  },
+  "homepage": "https://github.com/mastahyeti/security-key/",
+  "devDependencies": [
     "uglify-js"
   ]
 }
