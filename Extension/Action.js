@@ -22,13 +22,11 @@ var pingerPonger = {
     receive: function(name) {
         return new Promise(function(resolve, reject) {
             this.transferElt.addEventListener(name, function() {
-                console.log("pingerPonger receiving " + name);
                 resolve(JSON.parse(this.transferElt.dataset[name]));
             }.bind(this));
         }.bind(this));
     },
     send: function(name, value) {
-        console.log("pingerPonger sending " + name);
         this.transferElt.dataset[name] = JSON.stringify(value);
         this.transferElt.dispatchEvent(new Event(name));
     },
@@ -178,7 +176,6 @@ XhrAppIdChecker.prototype.allAppIdsEqualOrigin_ = function() {
 };
 
 XhrAppIdChecker.prototype.fetchAllowedOriginsForAppId_ = function(appId) {
-    console.log("fetching allowed origins for " + appId);
     if (!appId) {
         return Promise.resolve([]);
     }
@@ -637,7 +634,6 @@ ClientData.prototype.json = function() {
 var ExtensionBridge = function() {};
 
 ExtensionBridge.prototype.sign = function(keyHandle, toSign) {
-    console.log("ExtensionBridge.prototype.sign");
     return new Promise(function(resolve, reject) {
         this.request = {
             type: "sign",
@@ -652,7 +648,6 @@ ExtensionBridge.prototype.sign = function(keyHandle, toSign) {
 };
 
 ExtensionBridge.prototype.register = function(keyHandle, toSign) {
-    console.log("ExtensionBridge.prototype.register");
     return new Promise(function(resolve, reject) {
         this.request = {
             type: "register",
@@ -665,7 +660,6 @@ ExtensionBridge.prototype.register = function(keyHandle, toSign) {
 };
 
 ExtensionBridge.prototype.run = function(parameters) {
-    console.log("ExtensionBridge.prototype.run");
     this.extensionCallBack = parameters.completionFunction;
     this.sendRequest();
 };
@@ -677,13 +671,10 @@ ExtensionBridge.prototype.sendRequest = function() {
     if (typeof this.extensionCallBack == "undefined") {
         return;
     }
-    console.log("ExtensionBridge.prototype.sendRequest");
-    console.log(this.request);
     this.extensionCallBack(this.request);
 };
 
 ExtensionBridge.prototype.finalize = function(parameters) {
-    console.log("ExtensionBridge.prototype.finalize");
     this.sendResponse(parameters);
 };
 
@@ -765,7 +756,7 @@ SignRequest.COUNTER = [ 0, 0, 0, 0 ];
 
 SignRequest.prototype.response = function() {
     if (!validKeyHandleForAppId(this.keyHandle, this.appId)) {
-        console.log("keyHandle appId mismatch");
+        console.log("error - keyHandle appId mismatch");
         return Promise.resolve({
             errorCode: 2
         });

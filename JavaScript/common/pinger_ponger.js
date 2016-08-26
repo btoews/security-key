@@ -29,14 +29,12 @@ var pingerPonger = {
   receive: function(name) {
     return new Promise(function(resolve, reject) {
       this.transferElt.addEventListener(name, function() {
-        console.log('pingerPonger receiving ' + name);
         resolve(JSON.parse(this.transferElt.dataset[name]));
       }.bind(this));
     }.bind(this));
   },
 
   send: function(name, value) {
-    console.log('pingerPonger sending ' + name);
     this.transferElt.dataset[name] = JSON.stringify(value);
     this.transferElt.dispatchEvent(new Event(name));
   },

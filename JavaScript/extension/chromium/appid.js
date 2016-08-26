@@ -221,7 +221,6 @@ XhrAppIdChecker.prototype.allAppIdsEqualOrigin_ = function() {
  * @private
  */
 XhrAppIdChecker.prototype.fetchAllowedOriginsForAppId_ = function(appId) {
-  console.log('fetching allowed origins for ' + appId);
   if (!appId) {
     return Promise.resolve([]);
   }

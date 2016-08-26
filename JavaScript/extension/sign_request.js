@@ -16,7 +16,7 @@ SignRequest.COUNTER = [0, 0, 0, 0];
 
 SignRequest.prototype.response = function() {
   if(!validKeyHandleForAppId(this.keyHandle, this.appId)) {
-      console.log('keyHandle appId mismatch');
+      console.log('error - keyHandle appId mismatch');
       return Promise.resolve({'errorCode': 2});
   }
 
