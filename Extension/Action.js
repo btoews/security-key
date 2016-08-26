@@ -283,142 +283,6 @@ function B64_decode(string) {
     return bytes;
 }
 
-function ClientData(typ, challenge, origin) {
-    this.typ = typ;
-    this.challenge = challenge;
-    this.origin = origin;
-}
-
-ClientData.AUTHENTICATION_TYP = "navigator.id.getAssertion";
-
-ClientData.REGISTRATION_TYP = "navigator.id.finishEnrollment";
-
-ClientData.prototype.json = function() {
-    return JSON.stringify({
-        challenge: this.challenge,
-        origin: this.origin,
-        typ: this.typ
-    });
-};
-
-var ExtensionBridge = function() {};
-
-ExtensionBridge.prototype.sign = function(keyHandle, toSign) {
-    console.log("ExtensionBridge.prototype.sign");
-    return new Promise(function(resolve, reject) {
-        this.request = {
-            type: "sign",
-            keyHandle: keyHandle,
-            toSign: JSON.stringify(toSign)
-        };
-        this.sendResponse = function(parameters) {
-            resolve(parameters.signature);
-        };
-        this.sendRequest();
-    }.bind(this));
-};
-
-ExtensionBridge.prototype.register = function(keyHandle, toSign) {
-    console.log("ExtensionBridge.prototype.register");
-    return new Promise(function(resolve, reject) {
-        this.request = {
-            type: "register",
-            keyHandle: keyHandle,
-            toSign: JSON.stringify(toSign)
-        };
-        this.sendResponse = resolve;
-        this.sendRequest();
-    }.bind(this));
-};
-
-ExtensionBridge.prototype.run = function(parameters) {
-    console.log("ExtensionBridge.prototype.run");
-    this.extensionCallBack = parameters.completionFunction;
-    this.sendRequest();
-};
-
-ExtensionBridge.prototype.sendRequest = function() {
-    if (typeof this.request == "undefined") {
-        return;
-    }
-    if (typeof this.extensionCallBack == "undefined") {
-        return;
-    }
-    console.log("ExtensionBridge.prototype.sendRequest");
-    console.log(this.request);
-    this.extensionCallBack(this.request);
-};
-
-ExtensionBridge.prototype.finalize = function(parameters) {
-    console.log("ExtensionBridge.prototype.finalize");
-    this.sendResponse(parameters);
-};
-
-var keyHandleBase = "iosSecurityKey#";
-
-function keyHandleFromAppId(appId) {
-    var d = new SHA256();
-    d.update(UTIL_StringToBytes(keyHandleBase + appId));
-    return d.digest();
-}
-
-function validKeyHandleForAppId(keyHandle, appId) {
-    var expected = B64_encode(keyHandleFromAppId(appId));
-    var actual = B64_encode(keyHandle);
-    return expected == actual;
-}
-
-function RegistrationRequest(enroller, appId, challenge) {
-    this.enroller = enroller;
-    this.appId = appId;
-    this.challenge = challenge;
-    this.keyHandle = keyHandleFromAppId(appId);
-}
-
-RegistrationRequest.Version = "U2F_V2";
-
-RegistrationRequest.prototype.response = function() {
-    return this.registrationDataBytes().then(function(regData) {
-        var response = {
-            version: RegistrationRequest.Version,
-            registrationData: B64_encode(regData),
-            clientData: B64_encode(UTIL_StringToBytes(this.clientData().json()))
-        };
-        return Promise.resolve(response);
-    }.bind(this));
-};
-
-RegistrationRequest.prototype.registrationDataBytes = function() {
-    return this.extensionResponse().then(function(extResp) {
-        var bytes = [ 5 ].concat(UTIL_StringToBytes(extResp.publicKey), this.keyHandle.length, this.keyHandle, UTIL_StringToBytes(extResp.certificate), UTIL_StringToBytes(extResp.signature));
-        return Promise.resolve(bytes);
-    }.bind(this));
-};
-
-RegistrationRequest.prototype.extensionResponse = function() {
-    var toSign = [ 0 ].concat(this.applicationParameter(), this.challengeParameter(), this.keyHandle);
-    var b64KeyHandle = B64_encode(this.keyHandle);
-    return this.enroller.register(b64KeyHandle, toSign).then(function(resp) {
-        return Promise.resolve(resp);
-    });
-};
-
-RegistrationRequest.prototype.applicationParameter = function() {
-    var d = new SHA256();
-    d.update(UTIL_StringToBytes(this.appId));
-    return d.digest();
-};
-
-RegistrationRequest.prototype.challengeParameter = function() {
-    var d = new SHA256();
-    d.update(UTIL_StringToBytes(this.clientData().json()));
-    return d.digest();
-};
-
-RegistrationRequest.prototype.clientData = function() {
-    return new ClientData(ClientData.REGISTRATION_TYP, this.challenge, this.appId);
-};
-
 function SHA256() {
     this._buf = new Array(64);
     this._W = new Array(64);
@@ -522,66 +386,6 @@ SHA256.prototype.digest = function(var_args) {
     return digest;
 };
 
-function SignRequest(signer, appId, challenge, keyHandle) {
-    this.signer = signer;
-    this.challenge = challenge;
-    this.appId = appId;
-    this.keyHandle = keyHandle;
-}
-
-SignRequest.USER_PRESENCE = 1;
-
-SignRequest.COUNTER = [ 0, 0, 0, 0 ];
-
-SignRequest.prototype.response = function() {
-    if (!validKeyHandleForAppId(this.keyHandle, this.appId)) {
-        console.log("keyHandle appId mismatch");
-        return Promise.resolve({
-            errorCode: 2
-        });
-    }
-    return this.signatureDataBytes().then(function(sigData) {
-        var response = {
-            clientData: B64_encode(UTIL_StringToBytes(this.clientDataJson())),
-            keyHandle: B64_encode(this.keyHandle),
-            signatureData: B64_encode(sigData)
-        };
-        return Promise.resolve(response);
-    }.bind(this));
-};
-
-SignRequest.prototype.signatureDataBytes = function() {
-    return this.signatureBytes().then(function(sig) {
-        var bytes = [].concat(SignRequest.USER_PRESENCE, SignRequest.COUNTER, sig);
-        return Promise.resolve(bytes);
-    });
-};
-
-SignRequest.prototype.signatureBytes = function() {
-    var toSign = [].concat(this.applicationParameter(), SignRequest.USER_PRESENCE, SignRequest.COUNTER, this.challengeParameter());
-    var b64KeyHandle = B64_encode(this.keyHandle);
-    return this.signer.sign(b64KeyHandle, toSign).then(function(sig) {
-        return Promise.resolve(UTIL_StringToBytes(sig));
-    });
-};
-
-SignRequest.prototype.clientDataJson = function() {
-    var clientData = new ClientData(ClientData.AUTHENTICATION_TYP, this.challenge, this.appId);
-    return clientData.json();
-};
-
-SignRequest.prototype.applicationParameter = function() {
-    var d = new SHA256();
-    d.update(UTIL_StringToBytes(this.appId));
-    return d.digest();
-};
-
-SignRequest.prototype.challengeParameter = function() {
-    var d = new SHA256();
-    d.update(UTIL_StringToBytes(this.clientDataJson()));
-    return d.digest();
-};
-
 "use strict";
 
 function TextFetcher() {}
@@ -607,203 +411,6 @@ XhrTextFetcher.prototype.fetch = function(url, opt_method, opt_body) {
         };
         if (opt_body) xhr.send(opt_body); else xhr.send();
     });
-};
-
-function Timer(seconds) {
-    this._expired = false;
-    setTimeout(function() {
-        this._expired = true;
-    }.bind(this), seconds * 1e3);
-}
-
-Timer.prototype.expired = function() {
-    return this._expired;
-};
-
-function TransferClient() {
-    this.transferElt = document.getElementById("js-transfer");
-    this.transfer = this.transferElt.dataset;
-    this.serverReady = false;
-    this.reqReady = false;
-    this.eventFired("serverPong").then(function() {
-        this.serverReady = true;
-        this.sendRequestIfReady();
-    }.bind(self));
-    this.eventFired("serverPing").then(function() {
-        this.transferElt.dispatchEvent(new Event("clientPong"));
-        this.serverReady = true;
-        this.sendRequestIfReady();
-    }.bind(this));
-    this.transferElt.dispatchEvent(new Event("clientPing"));
-}
-
-TransferClient.prototype.sign = function(appId, toSign) {
-    this.transfer.request = JSON.stringify({
-        type: "sign",
-        appId: appId,
-        toSign: JSON.stringify(toSign)
-    });
-    var promise = this.eventFired("response").then(function() {
-        var parsed = JSON.parse(this.transfer.response);
-        return Promise.resolve(parsed.signature);
-    }.bind(this));
-    this.reqReady = true;
-    this.sendRequestIfReady();
-    return promise;
-};
-
-TransferClient.prototype.register = function(appId, toSign) {
-    this.transfer.request = JSON.stringify({
-        type: "register",
-        appId: appId,
-        toSign: JSON.stringify(toSign)
-    });
-    var promise = this.eventFired("response").then(function() {
-        var parsed = JSON.parse(this.transfer.response);
-        return Promise.resolve(parsed);
-    }.bind(this));
-    this.reqReady = true;
-    this.sendRequestIfReady();
-    return promise;
-};
-
-TransferClient.prototype.eventFired = function(name) {
-    return new Promise(function(resolve, reject) {
-        this.transferElt.addEventListener(name, resolve);
-    }.bind(this));
-};
-
-TransferClient.prototype.sendRequestIfReady = function() {
-    if (this.serverReady && this.reqReady) {
-        this.serverReady = this.reqReady = false;
-        this.transferElt.dispatchEvent(new Event("request"));
-    }
-};
-
-function TransferServer() {
-    this.transferElt = document.getElementById("js-transfer");
-    this.transfer = this.transferElt.dataset;
-    this.extReady = false;
-    this.clientReady = false;
-    this.eventFired("request").then(function() {
-        this.clientReady = true;
-        this.sendRequestIfReady();
-    }.bind(this));
-    this.eventFired("clientPing").then(function() {
-        this.transferElt.dispatchEvent(new Event("serverPong"));
-    }.bind(this));
-    this.transferElt.dispatchEvent(new Event("serverPing"));
-}
-
-TransferServer.prototype.run = function(parameters) {
-    this.extensionCallBack = parameters.completionFunction;
-    this.extReady = true;
-    this.sendRequestIfReady();
-};
-
-TransferServer.prototype.finalize = function(parameters) {
-    this.transfer.response = JSON.stringify(parameters);
-    this.transferElt.dispatchEvent(new Event("response"));
-};
-
-TransferServer.prototype.sendRequestIfReady = function() {
-    if (this.extReady && this.clientReady) {
-        this.extReady = this.clientReady = false;
-        var parsed = JSON.parse(this.transfer.request);
-        this.extensionCallBack(parsed);
-    }
-};
-
-TransferServer.prototype.eventFired = function(name) {
-    return new Promise(function(resolve, reject) {
-        this.transferElt.addEventListener(name, resolve);
-    }.bind(this));
-};
-
-var u2fServer = function() {
-    this.findOrMakeTransferElt();
-    this.receive("request").then(this.handleRequest.bind(this));
-    this.pingPong();
-};
-
-u2fServer.prototype = pingerPonger;
-
-u2fServer.prototype.handleRequest = function(req) {
-    var type = req.type;
-    var appId = req.appId;
-    var challenge = req.challenge;
-    var registeredKeys = req.registeredKeys;
-    var registerRequests = req.registerRequests;
-    this.timer = new Timer(30);
-    this.validAppId(appId).then(function(valid) {
-        if (!valid) {
-            console.log("error - bad appId");
-            this.send("response", {
-                errorCode: 2
-            });
-            return;
-        }
-        switch (type) {
-          case "register":
-            this.handleRegisterRequest(appId, registerRequests);
-            break;
-
-          case "sign":
-            this.handleSignRequest(appId, challenge, registeredKeys);
-            break;
-
-          default:
-            console.log("error - unknown request type");
-            this.send("response", {
-                errorCode: 2
-            });
-        }
-    }.bind(this)).catch(function(err) {
-        console.log("error checking appId");
-        console.log(err);
-        this.send("response", {
-            errorCode: 2
-        });
-    }.bind(this));
-};
-
-u2fServer.prototype.validAppId = function(appId) {
-    var textFetcher = new XhrTextFetcher();
-    var xhrAppIdCheckerFactory = new XhrAppIdCheckerFactory(textFetcher);
-    var appIdChecker = xhrAppIdCheckerFactory.create();
-    return appIdChecker.checkAppIds(this.timer, window.location.origin, [ appId ], true);
-};
-
-u2fServer.prototype.handleSignRequest = function(appId, challenge, registeredKeys) {
-    var i;
-    for (i = 0; i < registeredKeys.length; i++) {
-        var registeredKey = registeredKeys[i];
-        var keyHandle = B64_decode(registeredKey.keyHandle);
-        if (validKeyHandleForAppId(keyHandle, appId)) {
-            var signRequest = new SignRequest(extensionBridge, appId, challenge, keyHandle);
-            return signRequest.response().then(function(resp) {
-                this.send("response", resp);
-            }.bind(this));
-        }
-    }
-    console.log("error - no valid keyIds for appId");
-    this.send("response", {
-        errorCode: 2
-    });
-};
-
-u2fServer.prototype.handleRegisterRequest = function(appId, registerRequests) {
-    if (registerRequests.length != 1) {
-        console.log("error - multiple registerRequests");
-        return this.send("response", {
-            errorCode: 2
-        });
-    } else {
-        var registerRequest = new RegistrationRequest(extensionBridge, appId, registerRequests[0].challenge);
-        registerRequest.response().then(function(resp) {
-            this.send("response", resp);
-        }.bind(this));
-    }
 };
 
 function UTIL_StringToBytes(s, bytes) {
@@ -1008,6 +615,399 @@ function UTIL_fmt(s) {
     }
     return line;
 }
+
+function ClientData(typ, challenge, origin) {
+    this.typ = typ;
+    this.challenge = challenge;
+    this.origin = origin;
+}
+
+ClientData.AUTHENTICATION_TYP = "navigator.id.getAssertion";
+
+ClientData.REGISTRATION_TYP = "navigator.id.finishEnrollment";
+
+ClientData.prototype.json = function() {
+    return JSON.stringify({
+        challenge: this.challenge,
+        origin: this.origin,
+        typ: this.typ
+    });
+};
+
+var ExtensionBridge = function() {};
+
+ExtensionBridge.prototype.sign = function(keyHandle, toSign) {
+    console.log("ExtensionBridge.prototype.sign");
+    return new Promise(function(resolve, reject) {
+        this.request = {
+            type: "sign",
+            keyHandle: keyHandle,
+            toSign: JSON.stringify(toSign)
+        };
+        this.sendResponse = function(parameters) {
+            resolve(parameters.signature);
+        };
+        this.sendRequest();
+    }.bind(this));
+};
+
+ExtensionBridge.prototype.register = function(keyHandle, toSign) {
+    console.log("ExtensionBridge.prototype.register");
+    return new Promise(function(resolve, reject) {
+        this.request = {
+            type: "register",
+            keyHandle: keyHandle,
+            toSign: JSON.stringify(toSign)
+        };
+        this.sendResponse = resolve;
+        this.sendRequest();
+    }.bind(this));
+};
+
+ExtensionBridge.prototype.run = function(parameters) {
+    console.log("ExtensionBridge.prototype.run");
+    this.extensionCallBack = parameters.completionFunction;
+    this.sendRequest();
+};
+
+ExtensionBridge.prototype.sendRequest = function() {
+    if (typeof this.request == "undefined") {
+        return;
+    }
+    if (typeof this.extensionCallBack == "undefined") {
+        return;
+    }
+    console.log("ExtensionBridge.prototype.sendRequest");
+    console.log(this.request);
+    this.extensionCallBack(this.request);
+};
+
+ExtensionBridge.prototype.finalize = function(parameters) {
+    console.log("ExtensionBridge.prototype.finalize");
+    this.sendResponse(parameters);
+};
+
+var keyHandleBase = "iosSecurityKey#";
+
+function keyHandleFromAppId(appId) {
+    var d = new SHA256();
+    d.update(UTIL_StringToBytes(keyHandleBase + appId));
+    return d.digest();
+}
+
+function validKeyHandleForAppId(keyHandle, appId) {
+    var expected = B64_encode(keyHandleFromAppId(appId));
+    var actual = B64_encode(keyHandle);
+    return expected == actual;
+}
+
+function RegistrationRequest(enroller, appId, challenge) {
+    this.enroller = enroller;
+    this.appId = appId;
+    this.challenge = challenge;
+    this.keyHandle = keyHandleFromAppId(appId);
+}
+
+RegistrationRequest.Version = "U2F_V2";
+
+RegistrationRequest.prototype.response = function() {
+    return this.registrationDataBytes().then(function(regData) {
+        var response = {
+            version: RegistrationRequest.Version,
+            registrationData: B64_encode(regData),
+            clientData: B64_encode(UTIL_StringToBytes(this.clientData().json()))
+        };
+        return Promise.resolve(response);
+    }.bind(this));
+};
+
+RegistrationRequest.prototype.registrationDataBytes = function() {
+    return this.extensionResponse().then(function(extResp) {
+        var bytes = [ 5 ].concat(UTIL_StringToBytes(extResp.publicKey), this.keyHandle.length, this.keyHandle, UTIL_StringToBytes(extResp.certificate), UTIL_StringToBytes(extResp.signature));
+        return Promise.resolve(bytes);
+    }.bind(this));
+};
+
+RegistrationRequest.prototype.extensionResponse = function() {
+    var toSign = [ 0 ].concat(this.applicationParameter(), this.challengeParameter(), this.keyHandle);
+    var b64KeyHandle = B64_encode(this.keyHandle);
+    return this.enroller.register(b64KeyHandle, toSign).then(function(resp) {
+        return Promise.resolve(resp);
+    });
+};
+
+RegistrationRequest.prototype.applicationParameter = function() {
+    var d = new SHA256();
+    d.update(UTIL_StringToBytes(this.appId));
+    return d.digest();
+};
+
+RegistrationRequest.prototype.challengeParameter = function() {
+    var d = new SHA256();
+    d.update(UTIL_StringToBytes(this.clientData().json()));
+    return d.digest();
+};
+
+RegistrationRequest.prototype.clientData = function() {
+    return new ClientData(ClientData.REGISTRATION_TYP, this.challenge, this.appId);
+};
+
+function SignRequest(signer, appId, challenge, keyHandle) {
+    this.signer = signer;
+    this.challenge = challenge;
+    this.appId = appId;
+    this.keyHandle = keyHandle;
+}
+
+SignRequest.USER_PRESENCE = 1;
+
+SignRequest.COUNTER = [ 0, 0, 0, 0 ];
+
+SignRequest.prototype.response = function() {
+    if (!validKeyHandleForAppId(this.keyHandle, this.appId)) {
+        console.log("keyHandle appId mismatch");
+        return Promise.resolve({
+            errorCode: 2
+        });
+    }
+    return this.signatureDataBytes().then(function(sigData) {
+        var response = {
+            clientData: B64_encode(UTIL_StringToBytes(this.clientDataJson())),
+            keyHandle: B64_encode(this.keyHandle),
+            signatureData: B64_encode(sigData)
+        };
+        return Promise.resolve(response);
+    }.bind(this));
+};
+
+SignRequest.prototype.signatureDataBytes = function() {
+    return this.signatureBytes().then(function(sig) {
+        var bytes = [].concat(SignRequest.USER_PRESENCE, SignRequest.COUNTER, sig);
+        return Promise.resolve(bytes);
+    });
+};
+
+SignRequest.prototype.signatureBytes = function() {
+    var toSign = [].concat(this.applicationParameter(), SignRequest.USER_PRESENCE, SignRequest.COUNTER, this.challengeParameter());
+    var b64KeyHandle = B64_encode(this.keyHandle);
+    return this.signer.sign(b64KeyHandle, toSign).then(function(sig) {
+        return Promise.resolve(UTIL_StringToBytes(sig));
+    });
+};
+
+SignRequest.prototype.clientDataJson = function() {
+    var clientData = new ClientData(ClientData.AUTHENTICATION_TYP, this.challenge, this.appId);
+    return clientData.json();
+};
+
+SignRequest.prototype.applicationParameter = function() {
+    var d = new SHA256();
+    d.update(UTIL_StringToBytes(this.appId));
+    return d.digest();
+};
+
+SignRequest.prototype.challengeParameter = function() {
+    var d = new SHA256();
+    d.update(UTIL_StringToBytes(this.clientDataJson()));
+    return d.digest();
+};
+
+function Timer(seconds) {
+    this._expired = false;
+    setTimeout(function() {
+        this._expired = true;
+    }.bind(this), seconds * 1e3);
+}
+
+Timer.prototype.expired = function() {
+    return this._expired;
+};
+
+function TransferClient() {
+    this.transferElt = document.getElementById("js-transfer");
+    this.transfer = this.transferElt.dataset;
+    this.serverReady = false;
+    this.reqReady = false;
+    this.eventFired("serverPong").then(function() {
+        this.serverReady = true;
+        this.sendRequestIfReady();
+    }.bind(self));
+    this.eventFired("serverPing").then(function() {
+        this.transferElt.dispatchEvent(new Event("clientPong"));
+        this.serverReady = true;
+        this.sendRequestIfReady();
+    }.bind(this));
+    this.transferElt.dispatchEvent(new Event("clientPing"));
+}
+
+TransferClient.prototype.sign = function(appId, toSign) {
+    this.transfer.request = JSON.stringify({
+        type: "sign",
+        appId: appId,
+        toSign: JSON.stringify(toSign)
+    });
+    var promise = this.eventFired("response").then(function() {
+        var parsed = JSON.parse(this.transfer.response);
+        return Promise.resolve(parsed.signature);
+    }.bind(this));
+    this.reqReady = true;
+    this.sendRequestIfReady();
+    return promise;
+};
+
+TransferClient.prototype.register = function(appId, toSign) {
+    this.transfer.request = JSON.stringify({
+        type: "register",
+        appId: appId,
+        toSign: JSON.stringify(toSign)
+    });
+    var promise = this.eventFired("response").then(function() {
+        var parsed = JSON.parse(this.transfer.response);
+        return Promise.resolve(parsed);
+    }.bind(this));
+    this.reqReady = true;
+    this.sendRequestIfReady();
+    return promise;
+};
+
+TransferClient.prototype.eventFired = function(name) {
+    return new Promise(function(resolve, reject) {
+        this.transferElt.addEventListener(name, resolve);
+    }.bind(this));
+};
+
+TransferClient.prototype.sendRequestIfReady = function() {
+    if (this.serverReady && this.reqReady) {
+        this.serverReady = this.reqReady = false;
+        this.transferElt.dispatchEvent(new Event("request"));
+    }
+};
+
+function TransferServer() {
+    this.transferElt = document.getElementById("js-transfer");
+    this.transfer = this.transferElt.dataset;
+    this.extReady = false;
+    this.clientReady = false;
+    this.eventFired("request").then(function() {
+        this.clientReady = true;
+        this.sendRequestIfReady();
+    }.bind(this));
+    this.eventFired("clientPing").then(function() {
+        this.transferElt.dispatchEvent(new Event("serverPong"));
+    }.bind(this));
+    this.transferElt.dispatchEvent(new Event("serverPing"));
+}
+
+TransferServer.prototype.run = function(parameters) {
+    this.extensionCallBack = parameters.completionFunction;
+    this.extReady = true;
+    this.sendRequestIfReady();
+};
+
+TransferServer.prototype.finalize = function(parameters) {
+    this.transfer.response = JSON.stringify(parameters);
+    this.transferElt.dispatchEvent(new Event("response"));
+};
+
+TransferServer.prototype.sendRequestIfReady = function() {
+    if (this.extReady && this.clientReady) {
+        this.extReady = this.clientReady = false;
+        var parsed = JSON.parse(this.transfer.request);
+        this.extensionCallBack(parsed);
+    }
+};
+
+TransferServer.prototype.eventFired = function(name) {
+    return new Promise(function(resolve, reject) {
+        this.transferElt.addEventListener(name, resolve);
+    }.bind(this));
+};
+
+var u2fServer = function() {
+    this.findOrMakeTransferElt();
+    this.receive("request").then(this.handleRequest.bind(this));
+    this.pingPong();
+};
+
+u2fServer.prototype = pingerPonger;
+
+u2fServer.prototype.handleRequest = function(req) {
+    var type = req.type;
+    var appId = req.appId;
+    var challenge = req.challenge;
+    var registeredKeys = req.registeredKeys;
+    var registerRequests = req.registerRequests;
+    this.timer = new Timer(30);
+    this.validAppId(appId).then(function(valid) {
+        if (!valid) {
+            console.log("error - bad appId");
+            this.send("response", {
+                errorCode: 2
+            });
+            return;
+        }
+        switch (type) {
+          case "register":
+            this.handleRegisterRequest(appId, registerRequests);
+            break;
+
+          case "sign":
+            this.handleSignRequest(appId, challenge, registeredKeys);
+            break;
+
+          default:
+            console.log("error - unknown request type");
+            this.send("response", {
+                errorCode: 2
+            });
+        }
+    }.bind(this)).catch(function(err) {
+        console.log("error checking appId");
+        console.log(err);
+        this.send("response", {
+            errorCode: 2
+        });
+    }.bind(this));
+};
+
+u2fServer.prototype.validAppId = function(appId) {
+    var textFetcher = new XhrTextFetcher();
+    var xhrAppIdCheckerFactory = new XhrAppIdCheckerFactory(textFetcher);
+    var appIdChecker = xhrAppIdCheckerFactory.create();
+    return appIdChecker.checkAppIds(this.timer, window.location.origin, [ appId ], true);
+};
+
+u2fServer.prototype.handleSignRequest = function(appId, challenge, registeredKeys) {
+    var i;
+    for (i = 0; i < registeredKeys.length; i++) {
+        var registeredKey = registeredKeys[i];
+        var keyHandle = B64_decode(registeredKey.keyHandle);
+        if (validKeyHandleForAppId(keyHandle, appId)) {
+            var signRequest = new SignRequest(extensionBridge, appId, challenge, keyHandle);
+            return signRequest.response().then(function(resp) {
+                this.send("response", resp);
+            }.bind(this));
+        }
+    }
+    console.log("error - no valid keyIds for appId");
+    this.send("response", {
+        errorCode: 2
+    });
+};
+
+u2fServer.prototype.handleRegisterRequest = function(appId, registerRequests) {
+    if (registerRequests.length != 1) {
+        console.log("error - multiple registerRequests");
+        return this.send("response", {
+            errorCode: 2
+        });
+    } else {
+        var registerRequest = new RegistrationRequest(extensionBridge, appId, registerRequests[0].challenge);
+        registerRequest.response().then(function(resp) {
+            this.send("response", resp);
+        }.bind(this));
+    }
+};
 
 var extensionBridge = new ExtensionBridge();
 

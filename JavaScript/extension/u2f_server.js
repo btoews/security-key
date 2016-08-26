@@ -1,3 +1,5 @@
+// Copyright (c) 2016 GitHub, inc.
+
 var u2fServer = function() {
   this.findOrMakeTransferElt();
 

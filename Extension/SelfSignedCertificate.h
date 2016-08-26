@@ -3,7 +3,7 @@
 //  SecurityKey
 //
 //  Created by Benjamin P Toews on 8/19/16.
-//  Copyright © 2016 mastahyeti. All rights reserved.
+//  Copyright © 2016 GitHub, inc. All rights reserved.
 //
 
 #import <Foundation/Foundation.h>

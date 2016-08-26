@@ -1,3 +1,5 @@
+// Copyright (c) 2016 GitHub, inc.
+
 function Timer(seconds) {
   this._expired = false;
   setTimeout(function(){

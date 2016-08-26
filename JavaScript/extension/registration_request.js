@@ -1,3 +1,5 @@
+// Copyright (c) 2016 GitHub, inc.
+
 function RegistrationRequest(enroller, appId, challenge) {
   this.enroller = enroller;
   this.appId = appId;

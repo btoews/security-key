@@ -3,7 +3,7 @@
 //  SecurityKey
 //
 //  Created by Benjamin P Toews on 8/16/16.
-//  Copyright © 2016 mastahyeti. All rights reserved.
+//  Copyright © 2016 GitHub, inc. All rights reserved.
 //
 
 import UIKit
@@ -22,4 +22,3 @@ class ViewController: UIViewController {
 
 
 }
-

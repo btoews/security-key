@@ -1,3 +1,5 @@
+// Copyright (c) 2016 GitHub, inc.
+
 var ExtensionBridge = function() {};
 
 ExtensionBridge.prototype.sign = function(keyHandle, toSign) {

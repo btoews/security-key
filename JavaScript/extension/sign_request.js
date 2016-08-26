@@ -1,3 +1,5 @@
+// Copyright (c) 2016 GitHub, inc.
+
 // signer    - Function
 // appId     - String
 // challenge - String

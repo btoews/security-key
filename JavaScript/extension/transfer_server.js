@@ -1,3 +1,5 @@
+// Copyright (c) 2016 GitHub, inc.
+
 function TransferServer(){
   this.transferElt = document.getElementById('js-transfer');
   this.transfer = this.transferElt.dataset;

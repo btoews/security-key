@@ -1,3 +1,5 @@
+// Copyright (c) 2016 GitHub, inc.
+
 var keyHandleBase = "iosSecurityKey#";
 
 function keyHandleFromAppId(appId) {

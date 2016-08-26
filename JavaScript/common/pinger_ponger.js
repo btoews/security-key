@@ -1,3 +1,5 @@
+// Copyright (c) 2016 GitHub, inc.
+
 var pingerPonger = {
   pingPong: function() {
     this.whenReady_ = [];

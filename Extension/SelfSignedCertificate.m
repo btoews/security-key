@@ -3,7 +3,7 @@
 //  SecurityKey
 //
 //  Created by Benjamin P Toews on 8/19/16.
-//  Copyright © 2016 mastahyeti. All rights reserved.
+//  Copyright © 2016 GitHub, inc. All rights reserved.
 //
 
 // http://opensource.apple.com/source/OpenSSL/OpenSSL-22/openssl/demos/x509/mkcert.c
@@ -32,18 +32,18 @@
         printf("failed to init x509\n");
         return 0;
     }
-    
+
     X509_set_version(self.x509, 2);
     ASN1_INTEGER_set(X509_get_serialNumber(self.x509), 1);
     X509_gmtime_adj(X509_get_notBefore(self.x509), 0);
     X509_gmtime_adj(X509_get_notAfter(self.x509),(long)60*60*24*1);
     X509_set_pubkey(self.x509, self.pkey);
-    
+
     X509_NAME* name = X509_get_subject_name(self.x509);
     X509_NAME_add_entry_by_txt(name, "CN", MBSTRING_ASC, (const unsigned char*)"mastahyeti", -1, -1, 0);
-    
+
     X509_set_issuer_name(self.x509, name);
-    
+
     if (!X509_sign(self.x509, self.pkey, EVP_sha256())) {
         printf("failed to sign cert\n");
         return 0;
@@ -59,18 +59,18 @@
         printf("failed to init pkey\n");
         return 0;
     }
-    
+
     EC_KEY* ec = EC_KEY_new_by_curve_name(NID_X9_62_prime256v1);
     if (ec == NULL) {
         printf("failed to init ec by curve name\n");
         return 0;
     }
-    
+
     if (EVP_PKEY_assign_EC_KEY(self.pkey, ec) != 1) {
         printf("failed to assing ec to pkey\n");
         return 0;
     }
-    
+
     if (EC_KEY_generate_key(ec) != 1) {
         printf("couldn't generate ec key\n");
         return 0;
@@ -92,25 +92,25 @@
     const unsigned char* cmsg = (const unsigned char*)[msg bytes];
     unsigned char* sig = (unsigned char*)malloc(EVP_PKEY_size(self.pkey));
     unsigned int len;
-    
+
     if (EVP_SignInit(&ctx, EVP_sha256()) != 1) {
         free(sig);
         printf("failed to init signing context\n");
         return nil;
     };
-    
+
     if (EVP_SignUpdate(&ctx, cmsg, (unsigned int)[msg length]) != 1) {
         free(sig);
         printf("failed to update digest\n");
         return nil;
     }
-    
+
     if (EVP_SignFinal(&ctx, sig, &len, self.pkey) != 1) {
         free(sig);
         printf("failed to finalize digest\n");
         return nil;
     }
-    
+
     return [[NSString alloc] initWithBytes: sig length: len encoding:NSASCIIStringEncoding];
 }
 

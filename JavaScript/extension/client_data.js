@@ -1,3 +1,5 @@
+// Copyright (c) 2016 GitHub, inc.
+
 function ClientData(typ, challenge, origin) {
   this.typ = typ;
   this.challenge = challenge;
