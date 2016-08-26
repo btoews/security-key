@@ -15,7 +15,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "F739A2AE1D63AE78001F025C"
-               BuildableName = "SecurityKey.app"
+               BuildableName = "Security Key.app"
                BlueprintName = "SecurityKey"
                ReferencedContainer = "container:SecurityKey.xcodeproj">
             </BuildableReference>
@@ -33,7 +33,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "F739A2AE1D63AE78001F025C"
-            BuildableName = "SecurityKey.app"
+            BuildableName = "Security Key.app"
             BlueprintName = "SecurityKey"
             ReferencedContainer = "container:SecurityKey.xcodeproj">
          </BuildableReference>
@@ -56,7 +56,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "F739A2AE1D63AE78001F025C"
-            BuildableName = "SecurityKey.app"
+            BuildableName = "Security Key.app"
             BlueprintName = "SecurityKey"
             ReferencedContainer = "container:SecurityKey.xcodeproj">
          </BuildableReference>
@@ -75,7 +75,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "F739A2AE1D63AE78001F025C"
-            BuildableName = "SecurityKey.app"
+            BuildableName = "Security Key.app"
             BlueprintName = "SecurityKey"
             ReferencedContainer = "container:SecurityKey.xcodeproj">
          </BuildableReference>
