@@ -1,38 +1,42 @@
 (function(exports, global) {
     var pingerPonger = {
         pingPong: function() {
-            this.whenReady_ = [];
-            this.isReady_ = false;
-            this.send("u2f-ping", 1);
-            this.receive("u2f-pong").then(function() {
-                this.isReady();
-            }.bind(this));
-            this.receive("u2f-ping").then(function() {
-                this.send("u2f-pong", 1);
-                this.isReady();
-            }.bind(this));
+            var self = this;
+            self.whenReady_ = [];
+            self.isReady_ = false;
+            self.send("ping");
+            self.receive("pong").then(function() {
+                self.isReady();
+            });
+            self.receive("ping").then(function() {
+                self.send("pong");
+                self.isReady();
+            });
         },
         receive: function(name) {
+            var self = this;
             return new Promise(function(resolve, reject) {
-                window.addEventListener(name, function(e) {
-                    console.log("receiving " + name);
+                window.addEventListener("u2f-" + name, function(e) {
+                    console.log("receiving " + name + ": " + JSON.stringify(e.detail));
                     resolve(e.detail);
                 });
             });
         },
-        send: function(name, value) {
-            console.log("sending " + name + ": " + JSON.stringify(value));
-            window.dispatchEvent(new CustomEvent(name, {
-                detail: value
+        send: function(name) {
+            var args = Array.from(arguments).slice(1);
+            console.log("sending " + name + ": " + JSON.stringify(args));
+            window.dispatchEvent(new CustomEvent("u2f-" + name, {
+                detail: args
             }));
         },
         whenReady: function() {
+            var self = this;
             if (this.isReady_) {
                 return Promise.resolve();
             } else {
                 return new Promise(function(resolve, reject) {
-                    this.whenReady_.push(resolve);
-                }.bind(this));
+                    self.whenReady_.push(resolve);
+                });
             }
         },
         isReady: function() {
@@ -41,34 +45,34 @@
             for (i = 0; i < this.whenReady_.length; i++) {
                 this.whenReady_[i]();
             }
+        },
+        rpcReceive: function(name, cb) {
+            var self = this;
+            self.receive(name + "-request").then(function(args) {
+                cb.apply(self, args);
+            });
         }
+    };
+    pingerPonger.rpcSender = function(name) {
+        return function() {
+            var self = this;
+            var args = Array.from(arguments);
+            args.unshift(name + "-request");
+            var responseHandler = args.pop();
+            self.receive(name + "-response").then(function(args) {
+                responseHandler.apply(self, args);
+            });
+            self.whenReady().then(function() {
+                self.send.apply(self, args);
+            });
+        };
     };
     var u2fClient = function() {
         this.pingPong();
     };
     u2fClient.prototype = pingerPonger;
-    u2fClient.prototype.register = function(appId, registerRequests, registeredKeys, responseHandler) {
-        this.whenReady().then(function() {
-            this.receive("u2f-response").then(responseHandler);
-            this.send("u2f-request", {
-                type: "register",
-                appId: appId,
-                registerRequests: registerRequests,
-                registeredKeys: registeredKeys
-            });
-        }.bind(this));
-    };
-    u2fClient.prototype.sign = function(appId, challenge, registeredKeys, responseHandler) {
-        this.whenReady().then(function() {
-            this.receive("u2f-response").then(responseHandler);
-            this.send("u2f-request", {
-                type: "sign",
-                appId: appId,
-                challenge: challenge,
-                registeredKeys: registeredKeys
-            });
-        }.bind(this));
-    };
+    u2fClient.prototype.register = pingerPonger.rpcSender("register");
+    u2fClient.prototype.sign = pingerPonger.rpcSender("sign");
     if (!global.u2f && !!navigator.platform && /iPad|iPhone|iPod/.test(navigator.platform)) {
         global.u2f = new u2fClient();
     }

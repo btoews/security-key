@@ -1,37 +1,41 @@
 var pingerPonger = {
     pingPong: function() {
-        this.whenReady_ = [];
-        this.isReady_ = false;
-        this.send("u2f-ping", 1);
-        this.receive("u2f-pong").then(function() {
-            this.isReady();
-        }.bind(this));
-        this.receive("u2f-ping").then(function() {
-            this.send("u2f-pong", 1);
-            this.isReady();
-        }.bind(this));
+        var self = this;
+        self.whenReady_ = [];
+        self.isReady_ = false;
+        self.send("ping");
+        self.receive("pong").then(function() {
+            self.isReady();
+        });
+        self.receive("ping").then(function() {
+            self.send("pong");
+            self.isReady();
+        });
     },
     receive: function(name) {
+        var self = this;
         return new Promise(function(resolve, reject) {
-            window.addEventListener(name, function(e) {
-                console.log("receiving " + name);
+            window.addEventListener("u2f-" + name, function(e) {
+                console.log("receiving " + name + ": " + JSON.stringify(e.detail));
                 resolve(e.detail);
             });
         });
     },
-    send: function(name, value) {
-        console.log("sending " + name + ": " + JSON.stringify(value));
-        window.dispatchEvent(new CustomEvent(name, {
-            detail: value
+    send: function(name) {
+        var args = Array.from(arguments).slice(1);
+        console.log("sending " + name + ": " + JSON.stringify(args));
+        window.dispatchEvent(new CustomEvent("u2f-" + name, {
+            detail: args
         }));
     },
     whenReady: function() {
+        var self = this;
         if (this.isReady_) {
             return Promise.resolve();
         } else {
             return new Promise(function(resolve, reject) {
-                this.whenReady_.push(resolve);
-            }.bind(this));
+                self.whenReady_.push(resolve);
+            });
         }
     },
     isReady: function() {
@@ -40,7 +44,28 @@ var pingerPonger = {
         for (i = 0; i < this.whenReady_.length; i++) {
             this.whenReady_[i]();
         }
+    },
+    rpcReceive: function(name, cb) {
+        var self = this;
+        self.receive(name + "-request").then(function(args) {
+            cb.apply(self, args);
+        });
     }
+};
+
+pingerPonger.rpcSender = function(name) {
+    return function() {
+        var self = this;
+        var args = Array.from(arguments);
+        args.unshift(name + "-request");
+        var responseHandler = args.pop();
+        self.receive(name + "-response").then(function(args) {
+            responseHandler.apply(self, args);
+        });
+        self.whenReady().then(function() {
+            self.send.apply(self, args);
+        });
+    };
 };
 
 "use strict";
@@ -810,88 +835,73 @@ Timer.prototype.expired = function() {
 };
 
 var u2fServer = function() {
-    this.receive("u2f-request").then(this.handleRequest.bind(this));
+    this.rpcReceive("register", this.handleRegisterRequest);
+    this.rpcReceive("sign", this.handleSignRequest);
     this.pingPong();
 };
 
 u2fServer.prototype = pingerPonger;
 
-u2fServer.prototype.handleRequest = function(req) {
-    var type = req.type;
-    var appId = req.appId;
-    var challenge = req.challenge;
-    var registeredKeys = req.registeredKeys;
-    var registerRequests = req.registerRequests;
-    this.timer = new Timer(30);
-    this.validAppId(appId).then(function(valid) {
-        if (!valid) {
-            console.log("error - bad appId");
-            this.send("u2f-response", {
-                errorCode: 2
-            });
-            return;
-        }
-        switch (type) {
-          case "register":
-            this.handleRegisterRequest(appId, registerRequests);
-            break;
-
-          case "sign":
-            this.handleSignRequest(appId, challenge, registeredKeys);
-            break;
-
-          default:
-            console.log("error - unknown request type");
-            this.send("u2f-response", {
-                errorCode: 2
-            });
-        }
-    }.bind(this)).catch(function(err) {
-        console.log("error checking appId");
-        console.log(err);
-        this.send("u2f-response", {
-            errorCode: 2
-        });
-    }.bind(this));
-};
-
 u2fServer.prototype.validAppId = function(appId) {
+    var self = this;
+    var timer = new Timer(30);
     var textFetcher = new XhrTextFetcher();
     var xhrAppIdCheckerFactory = new XhrAppIdCheckerFactory(textFetcher);
     var appIdChecker = xhrAppIdCheckerFactory.create();
-    return appIdChecker.checkAppIds(this.timer, window.location.origin, [ appId ], true);
-};
-
-u2fServer.prototype.handleSignRequest = function(appId, challenge, registeredKeys) {
-    var i;
-    for (i = 0; i < registeredKeys.length; i++) {
-        var registeredKey = registeredKeys[i];
-        var keyHandle = B64_decode(registeredKey.keyHandle);
-        if (validKeyHandleForAppId(keyHandle, appId)) {
-            var signRequest = new SignRequest(extensionBridge, appId, challenge, keyHandle);
-            return signRequest.response().then(function(resp) {
-                this.send("u2f-response", resp);
-            }.bind(this));
+    return appIdChecker.checkAppIds(timer, window.location.origin, [ appId ], true).then(function(valid) {
+        if (valid) {
+            return Promise.resolve();
+        } else {
+            return Promise.reject();
         }
-    }
-    console.log("error - no valid keyIds for appId");
-    this.send("u2f-response", {
-        errorCode: 2
     });
 };
 
-u2fServer.prototype.handleRegisterRequest = function(appId, registerRequests) {
-    if (registerRequests.length != 1) {
-        console.log("error - multiple registerRequests");
-        return this.send("u2f-response", {
+u2fServer.prototype.handleSignRequest = function(appId, challenge, registeredKeys) {
+    var self = this;
+    self.validAppId(appId).then(function() {
+        var i;
+        for (i = 0; i < registeredKeys.length; i++) {
+            var registeredKey = registeredKeys[i];
+            var keyHandle = B64_decode(registeredKey.keyHandle);
+            if (validKeyHandleForAppId(keyHandle, appId)) {
+                var signRequest = new SignRequest(extensionBridge, appId, challenge, keyHandle);
+                signRequest.response().then(function(resp) {
+                    self.send("sign-response", resp);
+                });
+                return;
+            }
+        }
+        self.send("sign-response", {
             errorCode: 2
         });
-    } else {
+    }).catch(function() {
+        self.send("sign-response", {
+            errorCode: 2
+        });
+    });
+};
+
+u2fServer.prototype.handleRegisterRequest = function(appId, registerRequests, registeredKeys) {
+    var self = this;
+    self.validAppId(appId).then(function() {
+        if (registerRequests.length != 1) {
+            console.log("error - too many registerRequests");
+            return self.send("register-response", {
+                errorCode: 2
+            });
+        }
         var registerRequest = new RegistrationRequest(extensionBridge, appId, registerRequests[0].challenge);
         registerRequest.response().then(function(resp) {
-            this.send("u2f-response", resp);
-        }.bind(this));
-    }
+            self.send("register-response", resp);
+        });
+    }).catch(function(e) {
+        console.log("error - invalid appId");
+        console.log(e);
+        self.send("register-response", {
+            errorCode: 2
+        });
+    });
 };
 
 var extensionBridge = new ExtensionBridge();

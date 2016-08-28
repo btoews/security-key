@@ -1,7 +1,7 @@
 {
   "name": "ios-security-key",
   "main": "u2f_polyfill.js",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "authors": [
     "mastahyeti"
   ],

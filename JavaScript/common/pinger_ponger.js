@@ -2,42 +2,47 @@
 
 var pingerPonger = {
   pingPong: function() {
-    this.whenReady_ = [];
-    this.isReady_ = false;
+    var self = this;
 
-    this.send('ping', 1);
+    self.whenReady_ = [];
+    self.isReady_ = false;
 
-    this.receive('pong').then(function() {
-      this.isReady();
-    }.bind(this));
+    self.send('ping');
 
-    this.receive('ping').then(function() {
-      this.send('pong', 1);
-      this.isReady();
-    }.bind(this));
+    self.receive('pong').then(function() {
+      self.isReady();
+    });
+
+    self.receive('ping').then(function() {
+      self.send('pong');
+      self.isReady();
+    });
   },
 
   receive: function(name) {
+    var self = this;
     return new Promise(function(resolve, reject) {
       window.addEventListener('u2f-' + name, function(e) {
-        console.log('receiving ' + name);
+        console.log('receiving ' + name + ': ' + JSON.stringify(e.detail));
         resolve(e.detail);
       });
     });
   },
 
-  send: function(name, value) {
-    console.log('sending ' + name + ': ' + JSON.stringify(value));
-    window.dispatchEvent(new CustomEvent('u2f-' + name, {detail: value}));
+  send: function(name) {
+    var args = Array.from(arguments).slice(1);
+    console.log('sending ' + name + ': ' + JSON.stringify(args));
+    window.dispatchEvent(new CustomEvent('u2f-' + name, {detail: args}));
   },
 
   whenReady: function() {
+    var self = this;
     if (this.isReady_) {
       return Promise.resolve();
     } else {
       return new Promise(function(resolve, reject) {
-        this.whenReady_.push(resolve);
-      }.bind(this));
+        self.whenReady_.push(resolve);
+      });
     }
   },
 
@@ -47,5 +52,30 @@ var pingerPonger = {
     for(i = 0; i < this.whenReady_.length; i++) {
       this.whenReady_[i]();
     }
+  },
+
+  rpcReceive: function(name, cb) {
+    var self = this;
+    self.receive(name + '-request').then(function(args) {
+      cb.apply(self, args);
+    });
   }
+};
+
+pingerPonger.rpcSender = function(name) {
+  return function() {
+    var self = this;
+
+    var args = Array.from(arguments);
+    args.unshift(name + '-request');
+
+    var responseHandler = args.pop();
+    self.receive(name + '-response').then(function(args) {
+      responseHandler.apply(self, args);
+    });
+
+    self.whenReady().then(function() {
+      self.send.apply(self, args);
+    });
+  };
 };
