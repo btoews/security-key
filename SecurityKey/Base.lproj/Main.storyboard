@@ -23,11 +23,20 @@
                                 <color key="textColor" red="0.0" green="0.0" blue="0.0" alpha="1" colorSpace="calibratedRGB"/>
                                 <nil key="highlightedColor"/>
                             </label>
+                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="WD4-Xj-3QP">
+                                <rect key="frame" x="277" y="550" width="47" height="30"/>
+                                <state key="normal" title="credits"/>
+                                <connections>
+                                    <action selector="creditsButtonPressed" destination="BYZ-38-t0r" eventType="touchUpInside" id="DnU-VN-0xd"/>
+                                </connections>
+                            </button>
                         </subviews>
                         <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="calibratedWhite"/>
                         <constraints>
+                            <constraint firstItem="wfy-db-euE" firstAttribute="top" secondItem="WD4-Xj-3QP" secondAttribute="bottom" constant="20" id="1ev-0S-SCR"/>
                             <constraint firstItem="jd6-RP-xP7" firstAttribute="centerY" secondItem="8bC-Xf-vdC" secondAttribute="centerY" id="L2A-wE-GHd"/>
                             <constraint firstItem="jd6-RP-xP7" firstAttribute="centerX" secondItem="8bC-Xf-vdC" secondAttribute="centerX" id="Vtr-qL-kg4"/>
+                            <constraint firstItem="WD4-Xj-3QP" firstAttribute="centerX" secondItem="8bC-Xf-vdC" secondAttribute="centerX" id="fbK-ph-3nE"/>
                         </constraints>
                     </view>
                 </viewController>
