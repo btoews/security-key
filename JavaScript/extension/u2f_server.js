@@ -1,84 +1,61 @@
 // Copyright (c) 2016 GitHub, inc.
 
-var u2fServer = function() {
-  this.rpcReceive('register', this.handleRegisterRequest);
-  this.rpcReceive('sign', this.handleSignRequest);
+var u2fServer = function(extension) {
+  this.extension = extension;
+  this.rpcResponder('register', this.handleRegisterRequest);
+  this.rpcResponder('sign', this.handleSignRequest);
   this.pingPong();
 };
 
 u2fServer.prototype = pingerPonger;
 
-u2fServer.prototype.validAppId = function(appId) {
+u2fServer.prototype.rpcResponder = function(name, requestHandler) {
   var self = this;
-  var timer = new Timer(30);
-  var textFetcher = new XhrTextFetcher();
-  var xhrAppIdCheckerFactory = new XhrAppIdCheckerFactory(textFetcher);
-  var appIdChecker = xhrAppIdCheckerFactory.create();
-
-  return appIdChecker.checkAppIds(
-    timer,
-    window.location.origin,
-    [appId],
-    true // allow-http
-  ).then(function(valid) {
-    if(valid) {
-      return Promise.resolve();
-    } else {
-      return Promise.reject();
-    }
+  self.receive(name + '-request', function() {
+    requestHandler.apply(this, arguments).then(function(resp) {
+      self.send(name + '-response', resp);
+    }).catch(function(e) {
+      console.log(name, 'error', e);
+      self.send(name + '-response', {'errorCode': 2});
+    });
   });
 };
 
 u2fServer.prototype.handleSignRequest = function(appId, challenge, registeredKeys) {
   var self = this;
-  self.validAppId(appId).then(function() {
-    var i;
-    for(i = 0; i < registeredKeys.length; i++) {
-      var registeredKey = registeredKeys[i];
+  return validAppId(appId).then(function() {
+    while (registeredKey = registeredKeys.shift()) {
       var keyHandle = B64_decode(registeredKey.keyHandle);
 
       if (validKeyHandleForAppId(keyHandle, appId)) {
         var signRequest = new SignRequest(
-          extensionBridge,
+          self.extension,
           appId,
           challenge,
           keyHandle
         );
 
-        signRequest.response().then(function(resp) {
-          self.send('sign-response', resp);
-        });
-
-        return;
+        return signRequest.response();
       }
     }
 
-    self.send('sign-response', {'errorCode': 2});
-  }).catch(function() {
-    self.send('sign-response', {'errorCode': 2});
+    return Promise.reject('no known key handles');
   });
 };
 
 u2fServer.prototype.handleRegisterRequest = function(appId, registerRequests, registeredKeys) {
   var self = this;
-  self.validAppId(appId).then(function() {
+  return validAppId(appId).then(function() {
     if (registerRequests.length != 1) {
-      console.log('error - too many registerRequests');
-      return self.send('register-response', {'errorCode': 2});
+      return Promise.reject('too many registerRequests');
     }
 
     var registerRequest = new RegistrationRequest(
-      extensionBridge,
+      self.extension,
       appId,
       registerRequests[0].challenge
     );
 
-    registerRequest.response().then(function(resp) {
-      self.send('register-response', resp);
-    });
-  }).catch(function(e) {
-    console.log('error - invalid appId');
-    console.log(e);
-    self.send('register-response', {'errorCode': 2});
+    return registerRequest.response();
   });
 };

@@ -1,7 +1,7 @@
 // Copyright (c) 2016 GitHub, inc.
 
-function RegistrationRequest(enroller, appId, challenge) {
-  this.enroller = enroller;
+function RegistrationRequest(extension, appId, challenge) {
+  this.extension = extension;
   this.appId = appId;
   this.challenge = challenge;
   this.keyHandle = keyHandleFromAppId(appId);
@@ -44,7 +44,7 @@ RegistrationRequest.prototype.extensionResponse = function() {
   );
 
   var b64KeyHandle = B64_encode(this.keyHandle);
-  return this.enroller.register(b64KeyHandle, toSign).then(function(resp) {
+  return this.extension.register(b64KeyHandle, toSign).then(function(resp) {
     return Promise.resolve(resp);
   });
 };

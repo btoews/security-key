@@ -1,11 +1,11 @@
 // Copyright (c) 2016 GitHub, inc.
 
-// signer    - Function
+// extension    - Function
 // appId     - String
 // challenge - String
 // keyHandle - Bytes
-function SignRequest(signer, appId, challenge, keyHandle) {
-  this.signer = signer;
+function SignRequest(extension, appId, challenge, keyHandle) {
+  this.extension = extension;
   this.challenge = challenge;
   this.appId = appId;
   this.keyHandle = keyHandle;
@@ -52,7 +52,7 @@ SignRequest.prototype.signatureBytes = function() {
   );
 
   var b64KeyHandle = B64_encode(this.keyHandle);
-  return this.signer.sign(b64KeyHandle, toSign).then(function(sig) {
+  return this.extension.sign(b64KeyHandle, toSign).then(function(sig) {
     return Promise.resolve(UTIL_StringToBytes(sig));
   });
 };
