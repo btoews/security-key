@@ -41,10 +41,8 @@ function validAppId(appId) {
     var xhrAppIdCheckerFactory = new XhrAppIdCheckerFactory(textFetcher);
     var appIdChecker = xhrAppIdCheckerFactory.create();
     return appIdChecker.checkAppIds(timer, window.location.origin, [ appId ], true).then(function(valid) {
-        if (valid) {
-            return Promise.resolve();
-        } else {
-            return Promise.reject("invalid app id for origin");
+        if (!valid) {
+            throw new Error("invalid app id for origin");
         }
     });
 }
@@ -709,14 +707,14 @@ RegistrationRequest.prototype.response = function() {
             registrationData: B64_encode(regData),
             clientData: B64_encode(UTIL_StringToBytes(this.clientData().json()))
         };
-        return Promise.resolve(response);
+        return response;
     }.bind(this));
 };
 
 RegistrationRequest.prototype.registrationDataBytes = function() {
     return this.extensionResponse().then(function(extResp) {
         var bytes = [ 5 ].concat(UTIL_StringToBytes(extResp.publicKey), this.keyHandle.length, this.keyHandle, UTIL_StringToBytes(extResp.certificate), UTIL_StringToBytes(extResp.signature));
-        return Promise.resolve(bytes);
+        return bytes;
     }.bind(this));
 };
 
@@ -724,7 +722,7 @@ RegistrationRequest.prototype.extensionResponse = function() {
     var toSign = [ 0 ].concat(this.applicationParameter(), this.challengeParameter(), this.keyHandle);
     var b64KeyHandle = B64_encode(this.keyHandle);
     return this.extension.register(b64KeyHandle, toSign).then(function(resp) {
-        return Promise.resolve(resp);
+        return resp;
     });
 };
 
@@ -758,9 +756,9 @@ SignRequest.COUNTER = [ 0, 0, 0, 0 ];
 SignRequest.prototype.response = function() {
     if (!validKeyHandleForAppId(this.keyHandle, this.appId)) {
         console.log("error - keyHandle appId mismatch");
-        return Promise.resolve({
+        return {
             errorCode: 2
-        });
+        };
     }
     return this.signatureDataBytes().then(function(sigData) {
         var response = {
@@ -768,14 +766,14 @@ SignRequest.prototype.response = function() {
             keyHandle: B64_encode(this.keyHandle),
             signatureData: B64_encode(sigData)
         };
-        return Promise.resolve(response);
+        return response;
     }.bind(this));
 };
 
 SignRequest.prototype.signatureDataBytes = function() {
     return this.signatureBytes().then(function(sig) {
         var bytes = [].concat(SignRequest.USER_PRESENCE, SignRequest.COUNTER, sig);
-        return Promise.resolve(bytes);
+        return bytes;
     });
 };
 
@@ -783,7 +781,7 @@ SignRequest.prototype.signatureBytes = function() {
     var toSign = [].concat(this.applicationParameter(), SignRequest.USER_PRESENCE, SignRequest.COUNTER, this.challengeParameter());
     var b64KeyHandle = B64_encode(this.keyHandle);
     return this.extension.sign(b64KeyHandle, toSign).then(function(sig) {
-        return Promise.resolve(UTIL_StringToBytes(sig));
+        return UTIL_StringToBytes(sig);
     });
 };
 
@@ -848,7 +846,7 @@ u2fServer.prototype.handleSignRequest = function(appId, challenge, registeredKey
                 return signRequest.response();
             }
         }
-        return Promise.reject("no known key handles");
+        throw new Error("no known key handles");
     });
 };
 
@@ -856,7 +854,7 @@ u2fServer.prototype.handleRegisterRequest = function(appId, registerRequests, re
     var self = this;
     return validAppId(appId).then(function() {
         if (registerRequests.length != 1) {
-            return Promise.reject("too many registerRequests");
+            throw new Error("too many registerRequests");
         }
         var registerRequest = new RegistrationRequest(self.extension, appId, registerRequests[0].challenge);
         return registerRequest.response();
