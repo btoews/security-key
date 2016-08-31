@@ -17,7 +17,7 @@ SignRequest.COUNTER = [0, 0, 0, 0];
 SignRequest.prototype.response = function() {
   if(!validKeyHandleForAppId(this.keyHandle, this.appId)) {
       console.log('error - keyHandle appId mismatch');
-      return Promise.resolve({'errorCode': 2});
+      return {'errorCode': 2};
   }
 
   return this.signatureDataBytes().then(function(sigData) {
@@ -27,7 +27,7 @@ SignRequest.prototype.response = function() {
       'signatureData': B64_encode(sigData)
     };
 
-    return Promise.resolve(response);
+    return response;
   }.bind(this));
 };
 
@@ -39,7 +39,7 @@ SignRequest.prototype.signatureDataBytes = function() {
       sig
     );
 
-    return Promise.resolve(bytes);
+    return bytes;
   });
 };
 
@@ -53,7 +53,7 @@ SignRequest.prototype.signatureBytes = function() {
 
   var b64KeyHandle = B64_encode(this.keyHandle);
   return this.extension.sign(b64KeyHandle, toSign).then(function(sig) {
-    return Promise.resolve(UTIL_StringToBytes(sig));
+    return UTIL_StringToBytes(sig);
   });
 };
 

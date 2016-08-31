@@ -39,7 +39,7 @@ u2fServer.prototype.handleSignRequest = function(appId, challenge, registeredKey
       }
     }
 
-    return Promise.reject('no known key handles');
+    throw new Error('no known key handles');
   });
 };
 
@@ -47,7 +47,7 @@ u2fServer.prototype.handleRegisterRequest = function(appId, registerRequests, re
   var self = this;
   return validAppId(appId).then(function() {
     if (registerRequests.length != 1) {
-      return Promise.reject('too many registerRequests');
+      throw new Error('too many registerRequests');
     }
 
     var registerRequest = new RegistrationRequest(

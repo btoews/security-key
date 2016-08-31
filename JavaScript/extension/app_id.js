@@ -12,10 +12,8 @@ function validAppId(appId) {
     [appId],
     true // allow-http
   ).then(function(valid) {
-    if(valid) {
-      return Promise.resolve();
-    } else {
-      return Promise.reject('invalid app id for origin');
+    if(!valid) {
+      throw new Error('invalid app id for origin');
     }
   });
 };

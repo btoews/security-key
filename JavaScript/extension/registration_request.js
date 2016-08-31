@@ -17,7 +17,7 @@ RegistrationRequest.prototype.response = function() {
       'clientData': B64_encode(UTIL_StringToBytes(this.clientData().json()))
     };
 
-    return Promise.resolve(response);
+    return response;
   }.bind(this));
 };
 
@@ -31,7 +31,7 @@ RegistrationRequest.prototype.registrationDataBytes = function() {
       UTIL_StringToBytes(extResp.signature)
     );
 
-    return Promise.resolve(bytes);
+    return bytes;
   }.bind(this));
 };
 
@@ -45,7 +45,7 @@ RegistrationRequest.prototype.extensionResponse = function() {
 
   var b64KeyHandle = B64_encode(this.keyHandle);
   return this.extension.register(b64KeyHandle, toSign).then(function(resp) {
-    return Promise.resolve(resp);
+    return resp;
   });
 };
 
