@@ -13,21 +13,22 @@ class ActionRequestHandler: NSObject, NSExtensionRequestHandling {
 
     var extensionContext: NSExtensionContext?
 
-    func beginRequestWithExtensionContext(context: NSExtensionContext) {
+    func beginRequest(with context: NSExtensionContext) {
         print("beginRequestWithExtensionContext")
         self.extensionContext = context
 
         var found = false
 
         outer:
-            for item: AnyObject in context.inputItems {
+			for item: Any in context.inputItems {
                 let extItem = item as! NSExtensionItem
                 if let attachments = extItem.attachments {
-                    for itemProvider: AnyObject in attachments {
-                        if itemProvider.hasItemConformingToTypeIdentifier(kUTTypePropertyList as String) {
-                            itemProvider.loadItemForTypeIdentifier(kUTTypePropertyList as String, options: nil, completionHandler: { (item, error) in
+					for itemProvider: Any in attachments {
+						let extItemProvider = itemProvider as! NSItemProvider
+                        if extItemProvider.hasItemConformingToTypeIdentifier(kUTTypePropertyList as String) {
+                            extItemProvider.loadItem(forTypeIdentifier: kUTTypePropertyList as String, options: nil, completionHandler: { (item, error) in
                                 if let dictionary = item as? NSDictionary, let javaScriptValues = dictionary[NSExtensionJavaScriptPreprocessingResultsKey] as? NSDictionary {
-                                    NSOperationQueue.mainQueue().addOperationWithBlock {
+                                    OperationQueue.main.addOperation {
                                         self.itemLoadCompletedWithPreprocessingResults(javaScriptValues)
                                     }
                                 }
@@ -40,11 +41,11 @@ class ActionRequestHandler: NSObject, NSExtensionRequestHandling {
         }
 
         if !found {
-            self.doneWithResults(["error": "failed to find message"])
+            self.doneWithResults(["error" as NSObject: "failed to find message" as AnyObject])
         }
     }
 
-    func itemLoadCompletedWithPreprocessingResults(javaScriptValues: NSDictionary) {
+    func itemLoadCompletedWithPreprocessingResults(_ javaScriptValues: NSDictionary) {
         guard let reqType = javaScriptValues["type"] as? String else {
             print("bad request type")
             return
@@ -61,7 +62,7 @@ class ActionRequestHandler: NSObject, NSExtensionRequestHandling {
         }
     }
 
-    func handleRegisterRequest(javaScriptValues: NSDictionary) {
+    func handleRegisterRequest(_ javaScriptValues: NSDictionary) {
         guard
             let keyHandle = javaScriptValues["keyHandle"] as? String,
             let jsonToSign = javaScriptValues["toSign"] as? String,
@@ -73,7 +74,7 @@ class ActionRequestHandler: NSObject, NSExtensionRequestHandling {
 
         guard
             let key = generateOrGetKeyWithName(keyHandle),
-            let strKey = String(data: key, encoding: NSASCIIStringEncoding)
+            let strKey = String(data: key, encoding: String.Encoding.ascii)
             else {
                 print("error generating or finding key")
                 return
@@ -86,23 +87,23 @@ class ActionRequestHandler: NSObject, NSExtensionRequestHandling {
         }
 
         let fullToSign = NSMutableData()
-        fullToSign.appendData(toSign)
-        fullToSign.appendData(key)
+        fullToSign.append(toSign)
+        fullToSign.append(key)
 
-        guard let sig = ssc.signData(fullToSign)
+        guard let sig = ssc.sign(fullToSign as Data!)
             else {
                 print("error signing register request")
                 return
         }
 
         self.doneWithResults([
-            "signature": sig,
-            "publicKey": strKey,
-            "certificate": ssc.toDer()
+            "signature" as NSObject: sig as AnyObject,
+            "publicKey" as NSObject: strKey as AnyObject,
+            "certificate" as NSObject: ssc.toDer() as AnyObject
         ])
     }
 
-    func handleSignRequest(javaScriptValues: NSDictionary) {
+    func handleSignRequest(_ javaScriptValues: NSDictionary) {
         guard
             let keyHandle = javaScriptValues["keyHandle"] as? String,
             let jsonToSign = javaScriptValues["toSign"] as? String,
@@ -114,10 +115,10 @@ class ActionRequestHandler: NSObject, NSExtensionRequestHandling {
 
         print("sign request. toSign: \(jsonToSign)")
 
-        KeyInterface.generateSignatureForData(toSign, withKeyName: keyHandle) { (sig, err) in
+        KeyInterface.generateSignature(for: toSign, withKeyName: keyHandle) { (sig, err) in
             if err == nil {
-                let strSig = String(data: sig, encoding: NSASCIIStringEncoding)!
-                self.doneWithResults(["signature": strSig])
+                let strSig = String(data: sig!, encoding: String.Encoding.ascii)!
+                self.doneWithResults(["signature" as NSObject: strSig as AnyObject])
             } else {
                 print("failed to sign message: \(err)")
                 return
@@ -125,22 +126,22 @@ class ActionRequestHandler: NSObject, NSExtensionRequestHandling {
         }
     }
 
-    func doneWithResults(resultsForJavaScriptFinalizeArg: [NSObject: AnyObject]?) {
+    func doneWithResults(_ resultsForJavaScriptFinalizeArg: [NSObject: AnyObject]?) {
         if let resultsForJavaScriptFinalize = resultsForJavaScriptFinalizeArg {
             let resultsDictionary = [NSExtensionJavaScriptFinalizeArgumentKey: resultsForJavaScriptFinalize]
-            let resultsProvider = NSItemProvider(item: resultsDictionary, typeIdentifier: String(kUTTypePropertyList))
+            let resultsProvider = NSItemProvider(item: resultsDictionary as NSSecureCoding?, typeIdentifier: String(kUTTypePropertyList))
             let resultsItem = NSExtensionItem()
             resultsItem.attachments = [resultsProvider]
 
-            self.extensionContext!.completeRequestReturningItems([resultsItem], completionHandler: nil)
+            self.extensionContext!.completeRequest(returningItems: [resultsItem], completionHandler: nil)
         } else {
-            self.extensionContext!.completeRequestReturningItems([], completionHandler: nil)
+            self.extensionContext!.completeRequest(returningItems: [], completionHandler: nil)
         }
 
         self.extensionContext = nil
     }
 
-    func generateOrGetKeyWithName(name:String) -> NSData? {
+    func generateOrGetKeyWithName(_ name:String) -> Data? {
         if KeyInterface.publicKeyExists(name) {
             print("key pair exists")
         } else {
@@ -157,16 +158,16 @@ class ActionRequestHandler: NSObject, NSExtensionRequestHandling {
 
     // There were encoding issues passing a binary string from JavaScript. My shitty solution is to
     // JSON serialize a byte array in JavaScript and decode it here...
-    func decodeJsonByteArrayAsString(raw: String) -> NSData? {
-        guard let rawData = raw.dataUsingEncoding(NSUTF8StringEncoding) else {
+    func decodeJsonByteArrayAsString(_ raw: String) -> Data? {
+        guard let rawData = raw.data(using: String.Encoding.utf8) else {
             print("error converting raw to data")
             return nil
         }
 
         do {
-            if let ints = try NSJSONSerialization.JSONObjectWithData(rawData, options: []) as? [Int] {
+            if let ints = try JSONSerialization.jsonObject(with: rawData, options: []) as? [Int] {
                 let uints = ints.map { UInt8($0) }
-                return NSData(bytes: uints, length: uints.count)
+                return Data(bytes: UnsafePointer<UInt8>(uints), count: uints.count)
             } else {
                 print("bad json data")
                 return nil
