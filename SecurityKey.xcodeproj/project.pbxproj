@@ -183,7 +183,6 @@
 				TargetAttributes = {
 					F739A2AE1D63AE78001F025C = {
 						CreatedOnToolsVersion = 7.3.1;
-						DevelopmentTeam = VEKTX9H2N7;
 						SystemCapabilities = {
 							com.apple.ApplicationGroups.iOS = {
 								enabled = 0;
@@ -192,7 +191,6 @@
 					};
 					F739A2C71D63AF7F001F025C = {
 						CreatedOnToolsVersion = 7.3.1;
-						DevelopmentTeam = VEKTX9H2N7;
 						SystemCapabilities = {
 							com.apple.ApplicationGroups.iOS = {
 								enabled = 0;
