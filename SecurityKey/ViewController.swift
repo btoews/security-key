@@ -21,6 +21,6 @@ class ViewController: UIViewController {
     }
 
     @IBAction func creditsButtonPressed() {
-        UIApplication.sharedApplication().openURL(NSURL(string: "https://github.com/mastahyeti/security-key/blob/master/CREDITS.md")!)
+        UIApplication.shared.openURL(URL(string: "https://github.com/mastahyeti/security-key/blob/master/CREDITS.md")!)
     }
 }
