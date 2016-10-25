@@ -20,11 +20,11 @@ class ActionRequestHandler: NSObject, NSExtensionRequestHandling {
         var found = false
 
         outer:
-			for item: Any in context.inputItems {
+            for item: Any in context.inputItems {
                 let extItem = item as! NSExtensionItem
                 if let attachments = extItem.attachments {
-					for itemProvider: Any in attachments {
-						let extItemProvider = itemProvider as! NSItemProvider
+                    for itemProvider: Any in attachments {
+                        let extItemProvider = itemProvider as! NSItemProvider
                         if extItemProvider.hasItemConformingToTypeIdentifier(kUTTypePropertyList as String) {
                             extItemProvider.loadItem(forTypeIdentifier: kUTTypePropertyList as String, options: nil, completionHandler: { (item, error) in
                                 if let dictionary = item as? NSDictionary, let javaScriptValues = dictionary[NSExtensionJavaScriptPreprocessingResultsKey] as? NSDictionary {
@@ -41,7 +41,7 @@ class ActionRequestHandler: NSObject, NSExtensionRequestHandling {
         }
 
         if !found {
-            self.doneWithResults(["error" as NSObject: "failed to find message" as AnyObject])
+            self.doneWithResults(["error": "failed to find message"])
         }
     }
 
@@ -97,9 +97,9 @@ class ActionRequestHandler: NSObject, NSExtensionRequestHandling {
         }
 
         self.doneWithResults([
-            "signature" as NSObject: sig as AnyObject,
-            "publicKey" as NSObject: strKey as AnyObject,
-            "certificate" as NSObject: ssc.toDer() as AnyObject
+            "signature": sig,
+            "publicKey": strKey,
+            "certificate": ssc.toDer()
         ])
     }
 
@@ -118,7 +118,7 @@ class ActionRequestHandler: NSObject, NSExtensionRequestHandling {
         KeyInterface.generateSignature(for: toSign, withKeyName: keyHandle) { (sig, err) in
             if err == nil {
                 let strSig = String(data: sig!, encoding: String.Encoding.ascii)!
-                self.doneWithResults(["signature" as NSObject: strSig as AnyObject])
+                self.doneWithResults(["signature": strSig])
             } else {
                 print("failed to sign message: \(err)")
                 return
@@ -126,7 +126,7 @@ class ActionRequestHandler: NSObject, NSExtensionRequestHandling {
         }
     }
 
-    func doneWithResults(_ resultsForJavaScriptFinalizeArg: [NSObject: AnyObject]?) {
+    func doneWithResults(_ resultsForJavaScriptFinalizeArg: [AnyHashable: Any]?) {
         if let resultsForJavaScriptFinalize = resultsForJavaScriptFinalizeArg {
             let resultsDictionary = [NSExtensionJavaScriptFinalizeArgumentKey: resultsForJavaScriptFinalize]
             let resultsProvider = NSItemProvider(item: resultsDictionary as NSSecureCoding?, typeIdentifier: String(kUTTypePropertyList))
