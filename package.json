@@ -16,8 +16,8 @@
     "url": "https://github.com/mastahyeti/security-key"
   },
   "homepage": "https://github.com/mastahyeti/security-key/",
-  "devDependencies": [
-    "uglify-js"
-  ],
+  "devDependencies": {
+    "uglify-js": "2.7.x"
+  },
   "license": "MIT"
 }
