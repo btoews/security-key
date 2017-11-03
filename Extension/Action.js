@@ -35,249 +35,192 @@ var pingerPonger = {
     }
 };
 
-function validAppId(appId) {
-    var timer = new Timer(30);
-    var textFetcher = new XhrTextFetcher();
-    var xhrAppIdCheckerFactory = new XhrAppIdCheckerFactory(textFetcher);
-    var appIdChecker = xhrAppIdCheckerFactory.create();
-    return appIdChecker.checkAppIds(timer, window.location.origin, [ appId ], true).then(function(valid) {
-        if (!valid) {
-            throw new Error("invalid app id for origin");
-        }
-    });
+function RegistrationRequest(extension, appId, challenge) {
+    this.extension = extension;
+    this.appId = appId;
+    this.challenge = challenge;
+    this.keyHandle = keyHandleFromAppId(appId);
 }
 
-"use strict";
+RegistrationRequest.Version = "U2F_V2";
 
-function getOriginFromUrl(url) {
-    var re = new RegExp("^(https?://)[^/]*/?");
-    var originarray = re.exec(url);
-    if (originarray == null) return originarray;
-    var origin = originarray[0];
-    while (origin.charAt(origin.length - 1) == "/") {
-        origin = origin.substring(0, origin.length - 1);
-    }
-    if (origin == "http:" || origin == "https:") return null;
-    return origin;
-}
-
-function getOriginsFromJson(text) {
-    try {
-        var urls, i;
-        var appIdData = JSON.parse(text);
-        if (Array.isArray(appIdData)) {
-            urls = appIdData;
-        } else {
-            var trustedFacets = appIdData["trustedFacets"];
-            if (trustedFacets) {
-                var versionBlock;
-                for (i = 0; versionBlock = trustedFacets[i]; i++) {
-                    if (versionBlock["version"] && versionBlock["version"]["major"] == 1 && versionBlock["version"]["minor"] == 0) {
-                        urls = versionBlock["ids"];
-                        break;
-                    }
-                }
-            }
-            if (typeof urls == "undefined") {
-                throw Error("Could not find trustedFacets for version 1.0");
-            }
-        }
-        var origins = {};
-        var url;
-        for (i = 0; url = urls[i]; i++) {
-            var origin = getOriginFromUrl(url);
-            if (origin) {
-                origins[origin] = origin;
-            }
-        }
-        return Object.keys(origins);
-    } catch (e) {
-        console.error(UTIL_fmt("could not parse " + text));
-        return [];
-    }
-}
-
-function getDistinctAppIds(signChallenges) {
-    if (!signChallenges) {
-        return [];
-    }
-    var appIds = {};
-    for (var i = 0, request; request = signChallenges[i]; i++) {
-        var appId = request["appId"];
-        if (appId) {
-            appIds[appId] = appId;
-        }
-    }
-    return Object.keys(appIds);
-}
-
-function AppIdChecker() {}
-
-AppIdChecker.prototype.checkAppIds = function(timer, origin, appIds, allowHttp, opt_logMsgUrl) {};
-
-function AppIdCheckerFactory() {}
-
-AppIdCheckerFactory.prototype.create = function() {};
-
-function XhrAppIdChecker(fetcher) {
-    this.fetcher_ = fetcher;
-}
-
-XhrAppIdChecker.prototype.checkAppIds = function(timer, origin, appIds, allowHttp, opt_logMsgUrl) {
-    if (this.timer_) {
-        return Promise.resolve(false);
-    }
-    this.timer_ = timer;
-    this.origin_ = origin;
-    var appIdsMap = {};
-    if (appIds) {
-        for (var i = 0; i < appIds.length; i++) {
-            appIdsMap[appIds[i]] = appIds[i];
-        }
-    }
-    this.distinctAppIds_ = Object.keys(appIdsMap);
-    this.allowHttp_ = allowHttp;
-    this.logMsgUrl_ = opt_logMsgUrl;
-    if (!this.distinctAppIds_.length) return Promise.resolve(false);
-    if (this.allAppIdsEqualOrigin_()) {
-        return Promise.resolve(true);
-    } else {
-        var self = this;
-        var appIdChecks = self.distinctAppIds_.map(self.checkAppId_.bind(self));
-        return Promise.all(appIdChecks).then(function(results) {
-            return results.every(function(result) {
-                return result;
-            });
-        });
-    }
+RegistrationRequest.prototype.response = function() {
+    return this.registrationDataBytes().then(function(regData) {
+        var response = {
+            version: RegistrationRequest.Version,
+            registrationData: B64_encode(regData),
+            clientData: B64_encode(UTIL_StringToBytes(this.clientData().json()))
+        };
+        return response;
+    }.bind(this));
 };
 
-XhrAppIdChecker.prototype.checkAppId_ = function(appId) {
-    if (appId == this.origin_) {
-        return Promise.resolve(true);
-    }
-    var p = this.fetchAllowedOriginsForAppId_(appId);
-    var self = this;
-    return p.then(function(allowedOrigins) {
-        if (allowedOrigins.indexOf(self.origin_) == -1) {
-            console.warn(UTIL_fmt("Origin " + self.origin_ + " not allowed by app id " + appId));
-            return false;
-        }
-        return true;
+RegistrationRequest.prototype.registrationDataBytes = function() {
+    return this.extensionResponse().then(function(extResp) {
+        var bytes = [ 5 ].concat(UTIL_StringToBytes(extResp.publicKey), this.keyHandle.length, this.keyHandle, UTIL_StringToBytes(extResp.certificate), UTIL_StringToBytes(extResp.signature));
+        return bytes;
+    }.bind(this));
+};
+
+RegistrationRequest.prototype.extensionResponse = function() {
+    var toSign = [ 0 ].concat(this.applicationParameter(), this.challengeParameter(), this.keyHandle);
+    var b64KeyHandle = B64_encode(this.keyHandle);
+    return this.extension.register(b64KeyHandle, toSign).then(function(resp) {
+        return resp;
     });
 };
 
-XhrAppIdChecker.prototype.allAppIdsEqualOrigin_ = function() {
-    var self = this;
-    return this.distinctAppIds_.every(function(appId) {
-        return appId == self.origin_;
+RegistrationRequest.prototype.applicationParameter = function() {
+    var d = new SHA256();
+    d.update(UTIL_StringToBytes(this.appId));
+    return d.digest();
+};
+
+RegistrationRequest.prototype.challengeParameter = function() {
+    var d = new SHA256();
+    d.update(UTIL_StringToBytes(this.clientData().json()));
+    return d.digest();
+};
+
+RegistrationRequest.prototype.clientData = function() {
+    return new ClientData(ClientData.REGISTRATION_TYP, this.challenge, this.appId);
+};
+
+function Timer(seconds) {
+    this._expired = false;
+    setTimeout(function() {
+        this._expired = true;
+    }.bind(this), seconds * 1e3);
+}
+
+Timer.prototype.expired = function() {
+    return this._expired;
+};
+
+function ClientData(typ, challenge, origin) {
+    this.typ = typ;
+    this.challenge = challenge;
+    this.origin = origin;
+}
+
+ClientData.AUTHENTICATION_TYP = "navigator.id.getAssertion";
+
+ClientData.REGISTRATION_TYP = "navigator.id.finishEnrollment";
+
+ClientData.prototype.json = function() {
+    return JSON.stringify({
+        challenge: this.challenge,
+        origin: this.origin,
+        typ: this.typ
     });
 };
 
-XhrAppIdChecker.prototype.fetchAllowedOriginsForAppId_ = function(appId) {
-    if (!appId) {
-        return Promise.resolve([]);
+function SignRequest(extension, appId, challenge, keyHandle) {
+    this.extension = extension;
+    this.challenge = challenge;
+    this.appId = appId;
+    this.keyHandle = keyHandle;
+}
+
+SignRequest.USER_PRESENCE = 1;
+
+SignRequest.COUNTER = [ 0, 0, 0, 0 ];
+
+SignRequest.prototype.response = function() {
+    if (!validKeyHandleForAppId(this.keyHandle, this.appId)) {
+        console.log("error - keyHandle appId mismatch");
+        return {
+            errorCode: 2
+        };
     }
-    if (appId.indexOf("http://") == 0 && !this.allowHttp_) {
-        console.log(UTIL_fmt("http app ids disallowed, " + appId + " requested"));
-        return Promise.resolve([]);
-    }
-    var origin = getOriginFromUrl(appId);
-    if (!origin) {
-        return Promise.resolve([]);
-    }
-    var p = this.fetcher_.fetch(appId);
-    var self = this;
-    return p.then(getOriginsFromJson, function(rc_) {
-        var rc = rc_;
-        console.log(UTIL_fmt("fetching " + appId + " failed: " + rc));
-        if (!(rc >= 400 && rc < 500) && !self.timer_.expired()) {
-            return self.fetchAllowedOriginsForAppId_(appId);
-        }
-        return [];
+    return this.signatureDataBytes().then(function(sigData) {
+        var response = {
+            clientData: B64_encode(UTIL_StringToBytes(this.clientDataJson())),
+            keyHandle: B64_encode(this.keyHandle),
+            signatureData: B64_encode(sigData)
+        };
+        return response;
+    }.bind(this));
+};
+
+SignRequest.prototype.signatureDataBytes = function() {
+    return this.signatureBytes().then(function(sig) {
+        var bytes = [].concat(SignRequest.USER_PRESENCE, SignRequest.COUNTER, sig);
+        return bytes;
     });
 };
 
-function XhrAppIdCheckerFactory(fetcher) {
-    this.fetcher_ = fetcher;
-}
-
-XhrAppIdCheckerFactory.prototype.create = function() {
-    return new XhrAppIdChecker(this.fetcher_);
+SignRequest.prototype.signatureBytes = function() {
+    var toSign = [].concat(this.applicationParameter(), SignRequest.USER_PRESENCE, SignRequest.COUNTER, this.challengeParameter());
+    var b64KeyHandle = B64_encode(this.keyHandle);
+    return this.extension.sign(b64KeyHandle, toSign).then(function(sig) {
+        return UTIL_StringToBytes(sig);
+    });
 };
 
-function B64_encode(bytes, opt_length) {
-    if (!opt_length) opt_length = bytes.length;
-    var b64out = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
-    var result = "";
-    var shift = 0;
-    var accu = 0;
-    var inputIndex = 0;
-    while (opt_length--) {
-        accu <<= 8;
-        accu |= bytes[inputIndex++];
-        shift += 8;
-        while (shift >= 6) {
-            var i = accu >> shift - 6 & 63;
-            result += b64out.charAt(i);
-            shift -= 6;
-        }
-    }
-    if (shift) {
-        accu <<= 8;
-        shift += 8;
-        var i = accu >> shift - 6 & 63;
-        result += b64out.charAt(i);
-    }
-    return result;
-}
+SignRequest.prototype.clientDataJson = function() {
+    var clientData = new ClientData(ClientData.AUTHENTICATION_TYP, this.challenge, this.appId);
+    return clientData.json();
+};
 
-function base64_encode(bytes, opt_length) {
-    if (!opt_length) opt_length = bytes.length;
-    var b64out = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-    var result = "";
-    var shift = 0;
-    var accu = 0;
-    var inputIndex = 0;
-    while (opt_length--) {
-        accu <<= 8;
-        accu |= bytes[inputIndex++];
-        shift += 8;
-        while (shift >= 6) {
-            var i = accu >> shift - 6 & 63;
-            result += b64out.charAt(i);
-            shift -= 6;
-        }
-    }
-    if (shift) {
-        accu <<= 8;
-        shift += 8;
-        var i = accu >> shift - 6 & 63;
-        result += b64out.charAt(i);
-    }
-    while (result.length % 4) result += "=";
-    return result;
-}
+SignRequest.prototype.applicationParameter = function() {
+    var d = new SHA256();
+    d.update(UTIL_StringToBytes(this.appId));
+    return d.digest();
+};
 
-var B64_inmap = [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 63, 0, 0, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 0, 0, 0, 0, 64, 0, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 0, 0, 0, 0, 0 ];
+SignRequest.prototype.challengeParameter = function() {
+    var d = new SHA256();
+    d.update(UTIL_StringToBytes(this.clientDataJson()));
+    return d.digest();
+};
 
-function B64_decode(string) {
-    var bytes = [];
-    var accu = 0;
-    var shift = 0;
-    for (var i = 0; i < string.length; ++i) {
-        var c = string.charCodeAt(i);
-        if (c < 32 || c > 127 || !B64_inmap[c - 32]) return [];
-        accu <<= 6;
-        accu |= B64_inmap[c - 32] - 1;
-        shift += 6;
-        if (shift >= 8) {
-            bytes.push(accu >> shift - 8 & 255);
-            shift -= 8;
-        }
+var ExtensionBridge = function() {};
+
+ExtensionBridge.prototype.sign = function(keyHandle, toSign) {
+    return new Promise(function(resolve, reject) {
+        this.request = {
+            type: "sign",
+            keyHandle: keyHandle,
+            toSign: JSON.stringify(toSign)
+        };
+        this.sendResponse = function(parameters) {
+            resolve(parameters.signature);
+        };
+        this.sendRequest();
+    }.bind(this));
+};
+
+ExtensionBridge.prototype.register = function(keyHandle, toSign) {
+    return new Promise(function(resolve, reject) {
+        this.request = {
+            type: "register",
+            keyHandle: keyHandle,
+            toSign: JSON.stringify(toSign)
+        };
+        this.sendResponse = resolve;
+        this.sendRequest();
+    }.bind(this));
+};
+
+ExtensionBridge.prototype.run = function(parameters) {
+    this.extensionCallBack = parameters.completionFunction;
+    this.sendRequest();
+};
+
+ExtensionBridge.prototype.sendRequest = function() {
+    if (typeof this.request == "undefined") {
+        return;
     }
-    return bytes;
-}
+    if (typeof this.extensionCallBack == "undefined") {
+        return;
+    }
+    this.extensionCallBack(this.request);
+};
+
+ExtensionBridge.prototype.finalize = function(parameters) {
+    this.sendResponse(parameters);
+};
 
 function SHA256() {
     this._buf = new Array(64);
@@ -380,33 +323,6 @@ SHA256.prototype.digest = function(var_args) {
     var n = 0;
     for (var i = 0; i < 8; ++i) for (var j = 24; j >= 0; j -= 8) digest[n++] = this._chain[i] >> j & 255;
     return digest;
-};
-
-"use strict";
-
-function TextFetcher() {}
-
-TextFetcher.prototype.fetch = function(url, opt_method, opt_body) {};
-
-function XhrTextFetcher() {}
-
-XhrTextFetcher.prototype.fetch = function(url, opt_method, opt_body) {
-    return new Promise(function(resolve, reject) {
-        var xhr = new XMLHttpRequest();
-        var method = opt_method || "GET";
-        xhr.open(method, url, true);
-        xhr.onloadend = function() {
-            if (xhr.status != 200) {
-                reject(xhr.status);
-                return;
-            }
-            resolve(xhr.responseText);
-        };
-        xhr.onerror = function() {
-            reject(404);
-        };
-        if (opt_body) xhr.send(opt_body); else xhr.send();
-    });
 };
 
 function UTIL_StringToBytes(s, bytes) {
@@ -612,206 +528,276 @@ function UTIL_fmt(s) {
     return line;
 }
 
-function ClientData(typ, challenge, origin) {
-    this.typ = typ;
-    this.challenge = challenge;
-    this.origin = origin;
-}
+"use strict";
 
-ClientData.AUTHENTICATION_TYP = "navigator.id.getAssertion";
+function TextFetcher() {}
 
-ClientData.REGISTRATION_TYP = "navigator.id.finishEnrollment";
+TextFetcher.prototype.fetch = function(url, opt_method, opt_body) {};
 
-ClientData.prototype.json = function() {
-    return JSON.stringify({
-        challenge: this.challenge,
-        origin: this.origin,
-        typ: this.typ
-    });
-};
+function XhrTextFetcher() {}
 
-var ExtensionBridge = function() {};
-
-ExtensionBridge.prototype.sign = function(keyHandle, toSign) {
+XhrTextFetcher.prototype.fetch = function(url, opt_method, opt_body) {
     return new Promise(function(resolve, reject) {
-        this.request = {
-            type: "sign",
-            keyHandle: keyHandle,
-            toSign: JSON.stringify(toSign)
+        var xhr = new XMLHttpRequest();
+        var method = opt_method || "GET";
+        xhr.open(method, url, true);
+        xhr.onloadend = function() {
+            if (xhr.status != 200) {
+                reject(xhr.status);
+                return;
+            }
+            resolve(xhr.responseText);
         };
-        this.sendResponse = function(parameters) {
-            resolve(parameters.signature);
+        xhr.onerror = function() {
+            reject(404);
         };
-        this.sendRequest();
-    }.bind(this));
-};
-
-ExtensionBridge.prototype.register = function(keyHandle, toSign) {
-    return new Promise(function(resolve, reject) {
-        this.request = {
-            type: "register",
-            keyHandle: keyHandle,
-            toSign: JSON.stringify(toSign)
-        };
-        this.sendResponse = resolve;
-        this.sendRequest();
-    }.bind(this));
-};
-
-ExtensionBridge.prototype.run = function(parameters) {
-    this.extensionCallBack = parameters.completionFunction;
-    this.sendRequest();
-};
-
-ExtensionBridge.prototype.sendRequest = function() {
-    if (typeof this.request == "undefined") {
-        return;
-    }
-    if (typeof this.extensionCallBack == "undefined") {
-        return;
-    }
-    this.extensionCallBack(this.request);
-};
-
-ExtensionBridge.prototype.finalize = function(parameters) {
-    this.sendResponse(parameters);
-};
-
-var keyHandleBase = "iosSecurityKey#";
-
-function keyHandleFromAppId(appId) {
-    var d = new SHA256();
-    d.update(UTIL_StringToBytes(keyHandleBase + appId));
-    return d.digest();
-}
-
-function validKeyHandleForAppId(keyHandle, appId) {
-    var expected = B64_encode(keyHandleFromAppId(appId));
-    var actual = B64_encode(keyHandle);
-    return expected == actual;
-}
-
-function RegistrationRequest(extension, appId, challenge) {
-    this.extension = extension;
-    this.appId = appId;
-    this.challenge = challenge;
-    this.keyHandle = keyHandleFromAppId(appId);
-}
-
-RegistrationRequest.Version = "U2F_V2";
-
-RegistrationRequest.prototype.response = function() {
-    return this.registrationDataBytes().then(function(regData) {
-        var response = {
-            version: RegistrationRequest.Version,
-            registrationData: B64_encode(regData),
-            clientData: B64_encode(UTIL_StringToBytes(this.clientData().json()))
-        };
-        return response;
-    }.bind(this));
-};
-
-RegistrationRequest.prototype.registrationDataBytes = function() {
-    return this.extensionResponse().then(function(extResp) {
-        var bytes = [ 5 ].concat(UTIL_StringToBytes(extResp.publicKey), this.keyHandle.length, this.keyHandle, UTIL_StringToBytes(extResp.certificate), UTIL_StringToBytes(extResp.signature));
-        return bytes;
-    }.bind(this));
-};
-
-RegistrationRequest.prototype.extensionResponse = function() {
-    var toSign = [ 0 ].concat(this.applicationParameter(), this.challengeParameter(), this.keyHandle);
-    var b64KeyHandle = B64_encode(this.keyHandle);
-    return this.extension.register(b64KeyHandle, toSign).then(function(resp) {
-        return resp;
+        if (opt_body) xhr.send(opt_body); else xhr.send();
     });
 };
 
-RegistrationRequest.prototype.applicationParameter = function() {
-    var d = new SHA256();
-    d.update(UTIL_StringToBytes(this.appId));
-    return d.digest();
-};
-
-RegistrationRequest.prototype.challengeParameter = function() {
-    var d = new SHA256();
-    d.update(UTIL_StringToBytes(this.clientData().json()));
-    return d.digest();
-};
-
-RegistrationRequest.prototype.clientData = function() {
-    return new ClientData(ClientData.REGISTRATION_TYP, this.challenge, this.appId);
-};
-
-function SignRequest(extension, appId, challenge, keyHandle) {
-    this.extension = extension;
-    this.challenge = challenge;
-    this.appId = appId;
-    this.keyHandle = keyHandle;
-}
-
-SignRequest.USER_PRESENCE = 1;
-
-SignRequest.COUNTER = [ 0, 0, 0, 0 ];
-
-SignRequest.prototype.response = function() {
-    if (!validKeyHandleForAppId(this.keyHandle, this.appId)) {
-        console.log("error - keyHandle appId mismatch");
-        return {
-            errorCode: 2
-        };
+function B64_encode(bytes, opt_length) {
+    if (!opt_length) opt_length = bytes.length;
+    var b64out = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+    var result = "";
+    var shift = 0;
+    var accu = 0;
+    var inputIndex = 0;
+    while (opt_length--) {
+        accu <<= 8;
+        accu |= bytes[inputIndex++];
+        shift += 8;
+        while (shift >= 6) {
+            var i = accu >> shift - 6 & 63;
+            result += b64out.charAt(i);
+            shift -= 6;
+        }
     }
-    return this.signatureDataBytes().then(function(sigData) {
-        var response = {
-            clientData: B64_encode(UTIL_StringToBytes(this.clientDataJson())),
-            keyHandle: B64_encode(this.keyHandle),
-            signatureData: B64_encode(sigData)
-        };
-        return response;
-    }.bind(this));
-};
-
-SignRequest.prototype.signatureDataBytes = function() {
-    return this.signatureBytes().then(function(sig) {
-        var bytes = [].concat(SignRequest.USER_PRESENCE, SignRequest.COUNTER, sig);
-        return bytes;
-    });
-};
-
-SignRequest.prototype.signatureBytes = function() {
-    var toSign = [].concat(this.applicationParameter(), SignRequest.USER_PRESENCE, SignRequest.COUNTER, this.challengeParameter());
-    var b64KeyHandle = B64_encode(this.keyHandle);
-    return this.extension.sign(b64KeyHandle, toSign).then(function(sig) {
-        return UTIL_StringToBytes(sig);
-    });
-};
-
-SignRequest.prototype.clientDataJson = function() {
-    var clientData = new ClientData(ClientData.AUTHENTICATION_TYP, this.challenge, this.appId);
-    return clientData.json();
-};
-
-SignRequest.prototype.applicationParameter = function() {
-    var d = new SHA256();
-    d.update(UTIL_StringToBytes(this.appId));
-    return d.digest();
-};
-
-SignRequest.prototype.challengeParameter = function() {
-    var d = new SHA256();
-    d.update(UTIL_StringToBytes(this.clientDataJson()));
-    return d.digest();
-};
-
-function Timer(seconds) {
-    this._expired = false;
-    setTimeout(function() {
-        this._expired = true;
-    }.bind(this), seconds * 1e3);
+    if (shift) {
+        accu <<= 8;
+        shift += 8;
+        var i = accu >> shift - 6 & 63;
+        result += b64out.charAt(i);
+    }
+    return result;
 }
 
-Timer.prototype.expired = function() {
-    return this._expired;
+function base64_encode(bytes, opt_length) {
+    if (!opt_length) opt_length = bytes.length;
+    var b64out = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    var result = "";
+    var shift = 0;
+    var accu = 0;
+    var inputIndex = 0;
+    while (opt_length--) {
+        accu <<= 8;
+        accu |= bytes[inputIndex++];
+        shift += 8;
+        while (shift >= 6) {
+            var i = accu >> shift - 6 & 63;
+            result += b64out.charAt(i);
+            shift -= 6;
+        }
+    }
+    if (shift) {
+        accu <<= 8;
+        shift += 8;
+        var i = accu >> shift - 6 & 63;
+        result += b64out.charAt(i);
+    }
+    while (result.length % 4) result += "=";
+    return result;
+}
+
+var B64_inmap = [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 63, 0, 0, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 0, 0, 0, 0, 64, 0, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 0, 0, 0, 0, 0 ];
+
+function B64_decode(string) {
+    var bytes = [];
+    var accu = 0;
+    var shift = 0;
+    for (var i = 0; i < string.length; ++i) {
+        var c = string.charCodeAt(i);
+        if (c < 32 || c > 127 || !B64_inmap[c - 32]) return [];
+        accu <<= 6;
+        accu |= B64_inmap[c - 32] - 1;
+        shift += 6;
+        if (shift >= 8) {
+            bytes.push(accu >> shift - 8 & 255);
+            shift -= 8;
+        }
+    }
+    return bytes;
+}
+
+"use strict";
+
+function getOriginFromUrl(url) {
+    var re = new RegExp("^(https?://)[^/]*/?");
+    var originarray = re.exec(url);
+    if (originarray == null) return originarray;
+    var origin = originarray[0];
+    while (origin.charAt(origin.length - 1) == "/") {
+        origin = origin.substring(0, origin.length - 1);
+    }
+    if (origin == "http:" || origin == "https:") return null;
+    return origin;
+}
+
+function getOriginsFromJson(text) {
+    try {
+        var urls, i;
+        var appIdData = JSON.parse(text);
+        if (Array.isArray(appIdData)) {
+            urls = appIdData;
+        } else {
+            var trustedFacets = appIdData["trustedFacets"];
+            if (trustedFacets) {
+                var versionBlock;
+                for (i = 0; versionBlock = trustedFacets[i]; i++) {
+                    if (versionBlock["version"] && versionBlock["version"]["major"] == 1 && versionBlock["version"]["minor"] == 0) {
+                        urls = versionBlock["ids"];
+                        break;
+                    }
+                }
+            }
+            if (typeof urls == "undefined") {
+                throw Error("Could not find trustedFacets for version 1.0");
+            }
+        }
+        var origins = {};
+        var url;
+        for (i = 0; url = urls[i]; i++) {
+            var origin = getOriginFromUrl(url);
+            if (origin) {
+                origins[origin] = origin;
+            }
+        }
+        return Object.keys(origins);
+    } catch (e) {
+        console.error(UTIL_fmt("could not parse " + text));
+        return [];
+    }
+}
+
+function getDistinctAppIds(signChallenges) {
+    if (!signChallenges) {
+        return [];
+    }
+    var appIds = {};
+    for (var i = 0, request; request = signChallenges[i]; i++) {
+        var appId = request["appId"];
+        if (appId) {
+            appIds[appId] = appId;
+        }
+    }
+    return Object.keys(appIds);
+}
+
+function AppIdChecker() {}
+
+AppIdChecker.prototype.checkAppIds = function(timer, origin, appIds, allowHttp, opt_logMsgUrl) {};
+
+function AppIdCheckerFactory() {}
+
+AppIdCheckerFactory.prototype.create = function() {};
+
+function XhrAppIdChecker(fetcher) {
+    this.fetcher_ = fetcher;
+}
+
+XhrAppIdChecker.prototype.checkAppIds = function(timer, origin, appIds, allowHttp, opt_logMsgUrl) {
+    if (this.timer_) {
+        return Promise.resolve(false);
+    }
+    this.timer_ = timer;
+    this.origin_ = origin;
+    var appIdsMap = {};
+    if (appIds) {
+        for (var i = 0; i < appIds.length; i++) {
+            appIdsMap[appIds[i]] = appIds[i];
+        }
+    }
+    this.distinctAppIds_ = Object.keys(appIdsMap);
+    this.allowHttp_ = allowHttp;
+    this.logMsgUrl_ = opt_logMsgUrl;
+    if (!this.distinctAppIds_.length) return Promise.resolve(false);
+    if (this.allAppIdsEqualOrigin_()) {
+        return Promise.resolve(true);
+    } else {
+        var self = this;
+        var appIdChecks = self.distinctAppIds_.map(self.checkAppId_.bind(self));
+        return Promise.all(appIdChecks).then(function(results) {
+            return results.every(function(result) {
+                return result;
+            });
+        });
+    }
 };
+
+XhrAppIdChecker.prototype.checkAppId_ = function(appId) {
+    if (appId == this.origin_) {
+        return Promise.resolve(true);
+    }
+    var p = this.fetchAllowedOriginsForAppId_(appId);
+    var self = this;
+    return p.then(function(allowedOrigins) {
+        if (allowedOrigins.indexOf(self.origin_) == -1) {
+            console.warn(UTIL_fmt("Origin " + self.origin_ + " not allowed by app id " + appId));
+            return false;
+        }
+        return true;
+    });
+};
+
+XhrAppIdChecker.prototype.allAppIdsEqualOrigin_ = function() {
+    var self = this;
+    return this.distinctAppIds_.every(function(appId) {
+        return appId == self.origin_;
+    });
+};
+
+XhrAppIdChecker.prototype.fetchAllowedOriginsForAppId_ = function(appId) {
+    if (!appId) {
+        return Promise.resolve([]);
+    }
+    if (appId.indexOf("http://") == 0 && !this.allowHttp_) {
+        console.log(UTIL_fmt("http app ids disallowed, " + appId + " requested"));
+        return Promise.resolve([]);
+    }
+    var origin = getOriginFromUrl(appId);
+    if (!origin) {
+        return Promise.resolve([]);
+    }
+    var p = this.fetcher_.fetch(appId);
+    var self = this;
+    return p.then(getOriginsFromJson, function(rc_) {
+        var rc = rc_;
+        console.log(UTIL_fmt("fetching " + appId + " failed: " + rc));
+        if (!(rc >= 400 && rc < 500) && !self.timer_.expired()) {
+            return self.fetchAllowedOriginsForAppId_(appId);
+        }
+        return [];
+    });
+};
+
+function XhrAppIdCheckerFactory(fetcher) {
+    this.fetcher_ = fetcher;
+}
+
+XhrAppIdCheckerFactory.prototype.create = function() {
+    return new XhrAppIdChecker(this.fetcher_);
+};
+
+function validAppId(appId) {
+    var timer = new Timer(30);
+    var textFetcher = new XhrTextFetcher();
+    var xhrAppIdCheckerFactory = new XhrAppIdCheckerFactory(textFetcher);
+    var appIdChecker = xhrAppIdCheckerFactory.create();
+    return appIdChecker.checkAppIds(timer, window.location.origin, [ appId ], true).then(function(valid) {
+        if (!valid) {
+            throw new Error("invalid app id for origin");
+        }
+    });
+}
 
 var u2fServer = function(extension) {
     this.extension = extension;
@@ -860,6 +846,20 @@ u2fServer.prototype.handleRegisterRequest = function(appId, registerRequests, re
         return registerRequest.response();
     });
 };
+
+var keyHandleBase = "iosSecurityKey#";
+
+function keyHandleFromAppId(appId) {
+    var d = new SHA256();
+    d.update(UTIL_StringToBytes(keyHandleBase + appId));
+    return d.digest();
+}
+
+function validKeyHandleForAppId(keyHandle, appId) {
+    var expected = B64_encode(keyHandleFromAppId(appId));
+    var actual = B64_encode(keyHandle);
+    return expected == actual;
+}
 
 var extensionBridge = new ExtensionBridge();
 
