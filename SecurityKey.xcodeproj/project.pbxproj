@@ -259,7 +259,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "if ! which brew &> /dev/null; then\n  echo \"You must have homebrew installed to build this project\"\n  exit 1\nfi\n\nbrew bundle\nnpm install\n\nset -e\n\n# u2f_pollyfill.js\nfind $SCRIPT_INPUT_FILE_0 $SCRIPT_INPUT_FILE_3 -type f | xargs -J % ./node_modules/.bin/uglifyjs % $SCRIPT_INPUT_FILE_4 -b --wrap > ./u2f_polyfill.js\n\n# Action.js\nfind $SCRIPT_INPUT_FILE_0 $SCRIPT_INPUT_FILE_1 -type f | xargs -J % ./node_modules/.bin/uglifyjs % $SCRIPT_INPUT_FILE_2 -b > ./Extension/Action.js";
+			shellScript = "if ! which brew &> /dev/null; then\n  echo \"You must have homebrew installed to build this project\"\n  exit 1\nfi\n\nbrew bundle\nnpm install\n\nset -e\n\n# u2f_pollyfill.js\nfind $SCRIPT_INPUT_FILE_0 $SCRIPT_INPUT_FILE_3 -type f | xargs -J % ./node_modules/.bin/uglifyjs % $SCRIPT_INPUT_FILE_4 -b > ./u2f_polyfill.js\n\n# Action.js\nfind $SCRIPT_INPUT_FILE_0 $SCRIPT_INPUT_FILE_1 -type f | xargs -J % ./node_modules/.bin/uglifyjs % $SCRIPT_INPUT_FILE_2 -b > ./Extension/Action.js";
 		};
 /* End PBXShellScriptBuildPhase section */
 
