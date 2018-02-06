@@ -1,4 +1,4 @@
-(function(exports, global) {
+(function(global) {
     var pingerPonger = {
         pingPong: function() {
             this.whenReady_ = [];
@@ -55,7 +55,6 @@
     if (!global.u2f && !!navigator.platform && /iPad|iPhone|iPod/.test(navigator.platform)) {
         global.u2f = new u2fClient();
     }
-    global[""] = exports;
-})({}, function() {
+})(function() {
     return this;
 }());
