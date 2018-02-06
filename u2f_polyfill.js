@@ -1,4 +1,7 @@
 (function(global) {
+    if (global.u2f || !navigator.platform || !/iPad|iPhone|iPod/.test(navigator.platform)) {
+        return;
+    }
     var pingerPonger = {
         pingPong: function() {
             this.whenReady_ = [];
@@ -52,7 +55,5 @@
             });
         };
     };
-    if (!global.u2f && !!navigator.platform && /iPad|iPhone|iPod/.test(navigator.platform)) {
-        global.u2f = new u2fClient();
-    }
+    global.u2f = new u2fClient();
 })(typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {});
